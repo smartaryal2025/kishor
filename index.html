@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal QR & Barcode Tool</title>
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Universal QR Tool","short_name":"QR Tool","display":"standalone","background_color":"#111827","theme_color":"#111827"}'>
+
+    <link href="libs/cropper.min.css" rel="stylesheet">
+
+    <script src="libs/qrcode.min.js"></script>
+    <script src="libs/JsBarcode.all.min.js"></script>
+    <script src="libs/html5-qrcode.min.js"></script>
+    <script src="libs/FileSaver.min.js"></script>
+    <script src="libs/cropper.min.js"></script>
+
+    <style>
+        /* Base Styles */
+        body {
+            font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1f2937, #111827);
+            color: white;
+            margin: 0;
+            padding: 0; 
+        }
+        .app-container {
+            max-width: 1000px;
+            margin: auto;
+            padding: 25px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        .app-header {
+            text-align: center;
+            color: #38bdf8;
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        /* Sections */
+        section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #0f172a;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        /* Form Elements */
+        input, select, textarea {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 5px;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        /* Fix radio buttons */
+        input[type="radio"], input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            width: auto;
+            background: transparent;
+            padding: 0;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 6px 4px 6px 0;
+            border-radius: 5px;
+            border: none;
+            background: #38bdf8;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0ea5e9;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Generator Toggles */
+        .toggle-container {
+            display: flex;
+            gap: 25px; 
+            margin-bottom: 20px;
+            background: #1e293b;
+            padding: 12px 15px;
+            border-radius: 6px;
+            justify-content: flex-start;
+        }
+        .toggle-container label {
+            cursor: pointer;
+            font-weight: bold;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 8px; 
+            white-space: nowrap; 
+        }
+        #qrFields div {
+            margin-top: 5px;
+        }
+        #qrcode {
+            margin-top: 20px;
+        }
+        canvas, svg {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            display: block; 
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .full-width {
+            grid-column: span 2;
+        }
+
+        /* Generator - Export Button Row on Mobile */
+        .generator-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        @media (max-width: 600px) {
+            .generator-controls button {
+                flex: 1; 
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+        }
+
+        /* Scanner Styles */
+        .scan-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        #scanResultContainer {
+            display: block; 
+            margin-top: 15px;
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .scan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        #scanResult {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #334155;
+            font-family: monospace;
+            font-size: 14px;
+            color: #a5b4fc;
+            overflow-x: auto;
+            min-height: 20px;
+        }
+
+        #reader {
+            width: 100%; 
+            max-width: 500px; 
+            margin: auto;
+        }
+
+        /* Smart Action Container */
+        #scanActionContainer {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #0f172a;
+            border-radius: 6px;
+            border-left: 4px solid #4ade80;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        #scanActionText {
+            display: flex;
+            flex-direction: column;
+        }
+        #scanActionText strong {
+            color: #4ade80;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        #suggestedActionMessage {
+            color: #e2e8f0;
+            font-size: 15px;
+            margin-top: 2px;
+        }
+        #performActionBtn {
+            background: #4ade80;
+            color: #0f172a;
+            white-space: nowrap;
+            margin: 0;
+            padding: 8px 16px;
+        }
+        #performActionBtn:hover {
+            background: #22c55e;
+        }
+
+        /* History Styles */
+        .history-item {
+            background: #1e293b;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #38bdf8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+        .history-meta {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+        .history-data {
+            font-family: monospace;
+            font-size: 14px;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 600px;
+        }
+        .history-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .history-actions button {
+            padding: 6px 10px;
+            font-size: 12px;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        /* Cropper Modal */
+        #cropModal {
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95); 
+            z-index: 1000; 
+            padding: 20px; 
+            box-sizing: border-box;
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+        }
+        #cropContainer {
+            width: 100%; 
+            max-width: 600px; 
+            max-height: 60vh; 
+            background: #000;
+        }
+        #cropContainer img {
+            max-width: 100%;
+            display: block;
+        }
+        .crop-controls {
+            margin-top: 15px; 
+            display: flex; 
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .app-container { padding: 15px; }
+            .history-item { flex-direction: column; align-items: flex-start; }
+            .history-actions { margin-top: 10px; align-self: flex-end; }
+            .history-data { max-width: 250px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .full-width { grid-column: span 1; }
+            .toggle-container { gap: 15px; flex-wrap: wrap; } 
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="cropModal">
+    <h3 style="color: white; margin-top: 0;">Crop to scan</h3>
+    <div id="cropContainer"><img id="cropImage" src=""></div>
+    <div class="crop-controls">
+        <button onclick="scanCroppedImage()" style="background: #4ade80;">Scan Cropped Area</button>
+        <button class="btn-danger" onclick="closeCropper()">Cancel</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <h1 class="app-header">Universal QR & Barcode Tool</h1>
+
+    <section>
+        <div class="section-header">
+            <h2>Generator</h2>
+            <button class="btn-danger" onclick="clearGeneratorFields()" style="margin: 0; padding: 6px 12px;">Reset Fields</button>
+        </div>
+        
+        <div class="toggle-container">
+            <label><input type="radio" name="genMode" value="qr" checked onchange="switchMode()"> QR Code</label>
+            <label><input type="radio" name="genMode" value="barcode" onchange="switchMode()"> Barcode</label>
+        </div>
+
+        <div id="qrWrapper">
+            <select id="qrType" onchange="updateQRFields()">
+                <option value="text">Text / URL</option>
+                <option value="wifi">WiFi</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="sms">SMS</option>
+                <option value="geo">Geo Location</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="calendar">Calendar Event</option>
+                <option value="vcard">Contact vCard</option>
+                <option value="payment">Digital Payment</option>
+                <option value="wallet">Crypto Wallet</option>
+            </select>
+
+            <div id="qrFields"></div>
+            
+            <div class="generator-controls">
+                <button onclick="downloadQRPNG()">Export PNG</button>
+                <button onclick="downloadQRJPG()">Export JPG</button>
+                <button onclick="downloadQRSVG()">Export SVG</button>
+            </div>
+            <div id="qrcode"></div>
+        </div>
+
+        <div id="barcodeWrapper" style="display: none;">
+            <div class="form-grid">
+                <select id="barcodeType">
+                    <option value="CODE128">CODE128</option>
+                    <option value="EAN13">EAN13</option>
+                    <option value="ISBN">ISBN (Book)</option>
+                    <option value="EAN8">EAN8</option>
+                    <option value="UPC">UPC</option>
+                    <option value="ITF">ITF</option>
+                    <option value="MSI">MSI</option>
+                    <option value="pharmacode">Pharmacode</option>
+                </select>
+                <input id="barcodeText" placeholder="Enter barcode data">
+            </div>
+            
+            <div class="generator-controls">
+                <button onclick="downloadBarcodePNG()">Export PNG</button>
+                <button onclick="downloadBarcodeJPG()">Export JPG</button>
+                <button onclick="downloadBarcodeSVG()">Export SVG</button>
+            </div>
+            <br><br>
+            <svg id="barcode" style="display: none;"></svg>
+            <canvas id="barcodeCanvas" style="display: none;"></canvas>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <h2>Scanner</h2>
+        </div>
+        
+        <div class="scan-controls">
+            <button onclick="startScanner()">Start Camera</button>
+            <button onclick="stopScanner()">Stop Camera</button>
+            <span style="margin: 0 5px;">OR</span>
+            <input type="file" id="fileScan" accept="image/*" style="width: auto;">
+        </div>
+        
+        <div class="scan-controls" style="margin-top: 5px;">
+            <input type="text" id="urlScanInput" placeholder="Paste Online Image URL here..." style="flex-grow: 1; margin: 0;">
+            <button onclick="scanFromUrl()">Scan URL</button>
+        </div>
+        
+        <p style="font-size: 13px; color: #94a3b8; margin-top: 10px;"><em>Tip: You can press <strong>Ctrl+V</strong> (or Cmd+V) anywhere on the page to paste and crop an image directly.</em></p>
+        
+        <div id="reader"></div> 
+        
+        <div id="scanResultContainer">
+            <div class="scan-header">
+                <strong>Scanned Data:</strong>
+                <div>
+                    <button id="copyScanBtn" onclick="copyText(rawScanData, this)" style="margin: 0; padding: 6px 12px;">Copy Text</button>
+                    <button onclick="clearScanResult()" class="btn-danger" style="margin: 0 0 0 5px; padding: 6px 12px;">Clear</button>
+                </div>
+            </div>
+            <div id="scanResult"><span style="color: #64748b;">No data scanned yet.</span></div>
+            
+            <div id="scanActionContainer">
+                <div id="scanActionText">
+                    <strong>Suggested Action</strong>
+                    <span id="suggestedActionMessage"></span>
+                </div>
+                <button id="performActionBtn"></button>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <h2>History</h2>
+            <button class="btn-danger" onclick="clearHistory()" style="margin: 0; padding: 6px 12px;">Clear All History</button>
+        </div>
+        <div id="historyContainer">
+            </div>
+    </section>
+</div>
+
+<script>
+// ---------------------------------------------
+// UNIVERSAL COPY FUNCTION 
+// ---------------------------------------------
+function copyText(text, btnElement) {
+    if (!text) return;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showCopiedEffect(btnElement)).catch(() => executeFallbackCopy(text, btnElement));
+    } else {
+        executeFallbackCopy(text, btnElement);
+    }
+}
+
+function executeFallbackCopy(text, btnElement) {
+    let textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try { document.execCommand('copy'); showCopiedEffect(btnElement); } catch (err) { alert("Please copy manually."); }
+    textArea.remove();
+}
+
+function showCopiedEffect(btn) {
+    if (!btn) return;
+    let originalText = btn.innerText;
+    let originalBg = btn.style.background;
+    let originalColor = btn.style.color;
+    btn.innerText = "✓✓ Copied";
+    btn.style.background = "#4ade80"; 
+    btn.style.color = "#0f172a";
+    setTimeout(() => { btn.innerText = originalText; btn.style.background = originalBg; btn.style.color = originalColor; }, 2000);
+}
+
+// ---------------------------------------------
+// HISTORY LOGIC
+// ---------------------------------------------
+let appHistory = JSON.parse(localStorage.getItem('qrToolHistory')) || [];
+
+function renderHistory() {
+    let container = document.getElementById("historyContainer");
+    if (appHistory.length === 0) { container.innerHTML = '<span style="color: #64748b;">No history recorded yet.</span>'; return; }
+    container.innerHTML = appHistory.map((item, index) => {
+        let safeData = item.data.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        return `
+        <div class="history-item">
+            <div style="flex-grow: 1; overflow: hidden;">
+                <div class="history-meta"><strong style="color: #38bdf8;">${item.action}</strong> • ${item.time}</div>
+                <div class="history-data" title="${safeData}">${safeData}</div>
+            </div>
+            <div class="history-actions">
+                <button onclick="copyHistoryItem(${index}, this)">Copy</button>
+                <button class="btn-danger" onclick="deleteHistoryItem(${index})">X</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function saveToHistory(action, data) {
+    if (!data || data.trim() === "") return;
+    if (appHistory.length > 0 && appHistory[0].data === data && appHistory[0].action === action) return; 
+    appHistory.unshift({ action: action, data: data, time: new Date().toLocaleString() });
+    if (appHistory.length > 50) appHistory.pop();
+    localStorage.setItem('qrToolHistory', JSON.stringify(appHistory));
+    renderHistory();
+}
+
+function clearHistory() {
+    if(confirm("Are you sure you want to delete all history?")) { appHistory = []; localStorage.removeItem('qrToolHistory'); renderHistory(); }
+}
+function deleteHistoryItem(index) { appHistory.splice(index, 1); localStorage.setItem('qrToolHistory', JSON.stringify(appHistory)); renderHistory(); }
+function copyHistoryItem(index, btn) { copyText(appHistory[index].data, btn); }
+window.addEventListener('load', renderHistory);
+
+// ---------------------------------------------
+// GENERATOR LOGIC
+// ---------------------------------------------
+let qrCanvas;
+let lastGeneratedQRData = "";
+let lastGeneratedBarcodeData = "";
+
+function switchMode() {
+    let mode = document.querySelector('input[name="genMode"]:checked').value;
+    if (mode === 'qr') { document.getElementById('qrWrapper').style.display = 'block'; document.getElementById('barcodeWrapper').style.display = 'none'; } 
+    else { document.getElementById('qrWrapper').style.display = 'none'; document.getElementById('barcodeWrapper').style.display = 'block'; }
+}
+
+function updateQRFields(){
+    let t = document.getElementById("qrType").value;
+    let f = document.getElementById("qrFields");
+    
+    if(t == "text"){ f.innerHTML = `<textarea id="qrText" rows="3" placeholder="Enter text or URL"></textarea>`; }
+    if(t == "wifi"){
+        f.innerHTML = `<div class="form-grid"><input id="ssid" placeholder="Network SSID (Name)"><input id="pass" placeholder="Password"><select id="enc" class="full-width"><option value="WPA">WPA/WPA2</option><option value="WEP">WEP</option><option value="nopass">None</option></select></div>`;
+    }
+    if(t == "email"){ f.innerHTML = `<input id="email" placeholder="Email Address"><input id="subject" placeholder="Subject"><textarea id="message" rows="3" placeholder="Message"></textarea>`; }
+    if(t == "phone"){ f.innerHTML = `<input id="phone" placeholder="Phone Number">`; }
+    if(t == "sms"){ f.innerHTML = `<input id="smsnum" placeholder="Phone Number"><textarea id="smsmsg" rows="3" placeholder="Message"></textarea>`; }
+    if(t == "geo"){ f.innerHTML = `<div class="form-grid"><input id="lat" placeholder="Latitude"><input id="lon" placeholder="Longitude"></div>`; }
+    if(t == "whatsapp"){ f.innerHTML = `<input id="wap" placeholder="Phone Number (with country code)"><textarea id="wam" rows="3" placeholder="Message"></textarea>`; }
+    if(t == "calendar"){ f.innerHTML = `<div class="form-grid"><input id="event" placeholder="Event Name" class="full-width"><input id="location" placeholder="Location" class="full-width"><input id="start" placeholder="Start (YYYYMMDDTHHMMSS)"><input id="end" placeholder="End (YYYYMMDDTHHMMSS)"></div>`; }
+    if(t == "wallet"){ f.innerHTML = `<select id="coin"><option value="bitcoin">Bitcoin</option><option value="ethereum">Ethereum</option><option value="litecoin">Litecoin</option></select><input id="addr" placeholder="Wallet Address"><input id="amt" placeholder="Amount">`; }
+    if(t == "payment"){
+        f.innerHTML = `<select id="paytype" onchange="updatePaymentFields()"><option value="esewa">e-Sewa</option><option value="khalti">Khalti</option><option value="bank">Bank Transfer</option></select><div id="dynamicPayFields"></div>`;
+        setTimeout(updatePaymentFields, 50);
+    }
+    if(t == "vcard"){
+        f.innerHTML = `<div class="form-grid"><input id="fn" placeholder="First Name"><input id="ln" placeholder="Last Name"><input id="org" placeholder="Organization" class="full-width"><input id="title" placeholder="Title" class="full-width"><input id="vphone" placeholder="Phone"><input id="vmobile" placeholder="Mobile"><input id="vmail" placeholder="Email" class="full-width"><input id="web" placeholder="Website" class="full-width"><input id="addr" placeholder="Address" class="full-width"><input id="city" placeholder="City"><input id="country" placeholder="Country"></div>`;
+    }
+    setTimeout(generateQR, 100); 
+}
+
+function updatePaymentFields() {
+    let pType = document.getElementById("paytype").value;
+    let container = document.getElementById("dynamicPayFields");
+    if (pType === "esewa") { container.innerHTML = `<input id="esewaId" placeholder="e-Sewa ID"><input id="esewaName" placeholder="Account Name">`; } 
+    else if (pType === "khalti") { container.innerHTML = `<input id="khaltiId" placeholder="Khalti ID (Mobile Number)"><input id="khaltiName" placeholder="Account Name">`; } 
+    else if (pType === "bank") {
+        container.innerHTML = `<div class="form-grid"><select id="bankNameSelect" class="full-width"><option value="ADBLNPKA|0301">Agriculture Development Bank Ltd.</option><option value="BOALNPKA|2301">NIC Asia Bank Ltd.</option></select><input id="bankAccNo" placeholder="Account Number"><input id="bankAccName" placeholder="Account Name"><input id="bankAccType" placeholder="Account Type" class="full-width"></div>`;
+    }
+    generateQR();
+}
+
+function isQRInputEmpty() {
+    let inputs = document.querySelectorAll('#qrFields input, #qrFields textarea');
+    if(inputs.length === 0) return true;
+    for(let i=0; i<inputs.length; i++) { if(inputs[i].value.trim() !== "") return false; }
+    return true;
+}
+
+function generateQR(){
+    let type = document.getElementById("qrType").value;
+    let data = "";
+    lastGeneratedQRData = ""; 
+    
+    if(isQRInputEmpty()) { document.getElementById("qrcode").innerHTML = ""; qrCanvas = null; return; }
+
+    try {
+        if(type == "text") data = document.getElementById("qrText")?.value || "";
+        if(type == "wifi") data = `WIFI:T:${document.getElementById("enc")?.value || ""};S:${document.getElementById("ssid")?.value || ""};P:${document.getElementById("pass")?.value || ""};;`;
+        if(type == "email") data = `mailto:${document.getElementById("email")?.value || ""}?subject=${encodeURIComponent(document.getElementById("subject")?.value || "")}&body=${encodeURIComponent(document.getElementById("message")?.value || "")}`;
+        if(type == "phone") data = `tel:${document.getElementById("phone")?.value || ""}`;
+        if(type == "sms") data = `sms:${document.getElementById("smsnum")?.value || ""}:${document.getElementById("smsmsg")?.value || ""}`;
+        if(type == "geo") data = `geo:${document.getElementById("lat")?.value || ""},${document.getElementById("lon")?.value || ""}`;
+        if(type == "whatsapp") data = `https://wa.me/${document.getElementById("wap")?.value || ""}?text=${encodeURIComponent(document.getElementById("wam")?.value || "")}`;
+        if(type == "wallet") data = `${document.getElementById("coin")?.value || ""}:${document.getElementById("addr")?.value || ""}?amount=${document.getElementById("amt")?.value || ""}`;
+        if(type == "payment"){
+            let pType = document.getElementById("paytype").value;
+            if (pType === "esewa") data = JSON.stringify({ eSewa_id: document.getElementById("esewaId")?.value || "", name: document.getElementById("esewaName")?.value || "" });
+            else if (pType === "khalti") data = JSON.stringify({ khalti_id: document.getElementById("khaltiId")?.value || "", name: document.getElementById("khaltiName")?.value || "" });
+            else if (pType === "bank") {
+                let bankSelection = document.getElementById("bankNameSelect")?.value || "|";
+                let [extractedSwift, extractedCips] = bankSelection.split("|");
+                data = JSON.stringify({ accountNumber: document.getElementById("bankAccNo")?.value || "", accountName: document.getElementById("bankAccName")?.value || "", bankCode: extractedSwift, accountType: document.getElementById("bankAccType")?.value || "", bankCodeCIPS: extractedCips });
+            }
+        }
+        if(type == "calendar") data = `BEGIN:VEVENT\nSUMMARY:${document.getElementById("event")?.value || ""}\nLOCATION:${document.getElementById("location")?.value || ""}\nDTSTART:${document.getElementById("start")?.value || ""}\nDTEND:${document.getElementById("end")?.value || ""}\nEND:VEVENT`;
+        if(type == "vcard") data = `BEGIN:VCARD\nVERSION:3.0\nN:${document.getElementById("ln")?.value || ""};${document.getElementById("fn")?.value || ""}\nORG:${document.getElementById("org")?.value || ""}\nTITLE:${document.getElementById("title")?.value || ""}\nTEL:${document.getElementById("vphone")?.value || ""}\nTEL;CELL:${document.getElementById("vmobile")?.value || ""}\nEMAIL:${document.getElementById("vmail")?.value || ""}\nURL:${document.getElementById("web")?.value || ""}\nADR:;;${document.getElementById("addr")?.value || ""};${document.getElementById("city")?.value || ""};;${document.getElementById("country")?.value || ""}\nEND:VCARD`;
+        
+        if (!data || data === "" || data.trim() === "") return; 
+        lastGeneratedQRData = data; 
+        document.getElementById("qrcode").innerHTML = "";
+        QRCode.toCanvas(data, {width: 240}, function(err, canvas){
+            if(err) return;
+            qrCanvas = canvas;
+            document.getElementById("qrcode").appendChild(canvas);
+        });
+    } catch(e) { }
+}
+
+function clearGeneratorFields() {
+    document.querySelectorAll('#qrFields input, #qrFields textarea').forEach(input => input.value = "");
+    document.getElementById("barcodeText").value = "";
+    generateQR();
+    generateBarcode();
+}
+
+function downloadQRPNG(){ if(!qrCanvas) return alert("Generate a QR first!"); saveToHistory("Generated QR", lastGeneratedQRData); qrCanvas.toBlob(blob => saveAs(blob, "qr_code.png"), "image/png"); }
+function downloadQRJPG(){
+    if(!qrCanvas) return alert("Generate a QR first!"); saveToHistory("Generated QR", lastGeneratedQRData);
+    let tempCanvas = document.createElement("canvas"); tempCanvas.width = qrCanvas.width; tempCanvas.height = qrCanvas.height;
+    let ctx = tempCanvas.getContext("2d"); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height); ctx.drawImage(qrCanvas, 0, 0);
+    tempCanvas.toBlob(blob => saveAs(blob, "qr_code.jpg"), "image/jpeg", 1.0);
+}
+function downloadQRSVG(){ if(!qrCanvas) return alert("Generate a QR first!"); saveToHistory("Generated QR", lastGeneratedQRData); QRCode.toString("Exported SVG", {type: 'svg'}, function (err, svgString) { if(err) return; saveAs(new Blob([svgString], {type: "image/svg+xml"}), "qr_code.svg"); }); }
+
+function generateBarcode(){
+    let text = document.getElementById("barcodeText").value; let type = document.getElementById("barcodeType").value;
+    let svgElement = document.getElementById("barcode"); let hiddenCanvas = document.getElementById("barcodeCanvas");
+    lastGeneratedBarcodeData = "";
+    if(!text) { svgElement.innerHTML = ""; svgElement.style.display = "none"; hiddenCanvas.width = 0; return; }
+    try {
+        let options = { format: (type === "ISBN") ? "EAN13" : type, lineColor: "#000", width: 2, height: 50, displayValue: true, background: "#ffffff" };
+        JsBarcode(svgElement, text, options); svgElement.style.display = "block"; JsBarcode(hiddenCanvas, text, options);
+        lastGeneratedBarcodeData = text; 
+    } catch (error) { }
+}
+
+function downloadBarcodePNG(){ let canvas = document.getElementById("barcodeCanvas"); if(!canvas || canvas.width === 0) return alert("Generate a barcode first!"); saveToHistory("Generated Barcode", lastGeneratedBarcodeData); canvas.toBlob(blob => saveAs(blob, "barcode.png"), "image/png"); }
+function downloadBarcodeJPG(){ let canvas = document.getElementById("barcodeCanvas"); if(!canvas || canvas.width === 0) return alert("Generate a barcode first!"); saveToHistory("Generated Barcode", lastGeneratedBarcodeData); canvas.toBlob(blob => saveAs(blob, "barcode.jpg"), "image/jpeg", 1.0); }
+function downloadBarcodeSVG(){ let svg = document.getElementById("barcode"); if (!svg.innerHTML) return alert("Generate a barcode first!"); saveToHistory("Generated Barcode", lastGeneratedBarcodeData); saveAs(new Blob([new XMLSerializer().serializeToString(svg)], {type: "image/svg+xml"}), "barcode.svg"); }
+
+document.getElementById("qrFields").addEventListener("input", generateQR);
+document.getElementById("qrFields").addEventListener("change", generateQR);
+document.getElementById("barcodeText").addEventListener("input", generateBarcode);
+document.getElementById("barcodeType").addEventListener("change", generateBarcode);
+updateQRFields();
+
+// ---------------------------------------------
+// SCANNER LOGIC, CROPPER & NATIVE ACTIONS
+// ---------------------------------------------
+let html5QrcodeScanner;
+let rawScanData = ""; 
+let cropper;
+let currentSuggestedAction = null; 
+
+function detectActionType(decodedText) {
+    if (!decodedText) return null;
+    let trimmedText = decodedText.trim();
+    let lowerText = trimmedText.toLowerCase();
+
+    if (/^https?:\/\//i.test(trimmedText)) return { type: 'URL', text: 'Website Link Found', btn: 'Open Link', payload: trimmedText };
+    if (trimmedText.startsWith('WIFI:')) {
+        let params = trimmedText.substring(5).split(';').reduce((acc, param) => { let [key, ...valueArr] = param.split(':'); if (key) acc[key.trim().toUpperCase()] = valueArr.join(':').trim(); return acc; }, {});
+        if (params.S) return { type: 'WIFI', text: `WiFi Network: ${params.S}`, btn: 'Copy Password', payload: params.P || '' };
+    }
+    if (lowerText.startsWith('mailto:')) return { type: 'EMAIL', text: 'Email Address Found', btn: 'Send Email', payload: trimmedText };
+    if (lowerText.startsWith('tel:')) return { type: 'PHONE', text: 'Phone Number Found', btn: 'Call Number', payload: trimmedText };
+    if (trimmedText.startsWith('BEGIN:VCARD')) return { type: 'CONTACT', text: 'Contact Card Found', btn: 'Save to Contacts', payload: trimmedText };
+    if (trimmedText.startsWith('BEGIN:VEVENT')) return { type: 'CALENDAR', text: 'Calendar Event Found', btn: 'Add to Calendar', payload: trimmedText };
+    if (lowerText.startsWith('geo:')) return { type: 'GEO', text: 'Location Coordinates', btn: 'Open in Maps', payload: 'https://maps.google.com/?q=' + trimmedText.substring(4) };
+    
+    return null; 
+}
+
+function showScanResult(decodedText) {
+    rawScanData = decodedText;
+    let displayHtml = decodedText;
+    saveToHistory("Scanned Data", decodedText);
+
+    try {
+        if (decodedText.trim().startsWith('{') || decodedText.trim().startsWith('[')) displayHtml = `<pre style="margin:0; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(JSON.parse(decodedText), null, 2)}</pre>`;
+    } catch (e) {
+        if (/^https?:\/\//i.test(decodedText.trim())) displayHtml = `<a href="${decodedText.trim()}" target="_blank" style="color: #38bdf8; text-decoration: none;">${decodedText}</a>`;
+        else displayHtml = `<div style="white-space: pre-wrap; word-wrap: break-word;">${decodedText}</div>`;
+    }
+    document.getElementById("scanResult").innerHTML = displayHtml;
+
+    currentSuggestedAction = detectActionType(decodedText);
+    const actionContainer = document.getElementById('scanActionContainer');
+    const actionPrompt = document.getElementById('suggestedActionMessage');
+    const performActionBtn = document.getElementById('performActionBtn');
+
+    if (currentSuggestedAction) {
+        actionPrompt.innerText = currentSuggestedAction.text;
+        performActionBtn.innerText = currentSuggestedAction.btn;
+        actionContainer.style.display = 'flex';
+        performActionBtn.onclick = () => performDetectedAction();
+    } else {
+        actionContainer.style.display = 'none';
+        performActionBtn.onclick = null;
+    }
+}
+
+function performDetectedAction() {
+    if (!currentSuggestedAction) return;
+    let act = currentSuggestedAction;
+
+    if (act.type === 'URL' || act.type === 'GEO') window.open(act.payload, '_blank');
+    else if (act.type === 'EMAIL' || act.type === 'PHONE') window.location.href = act.payload;
+    else if (act.type === 'WIFI') {
+        if(act.payload) { copyText(act.payload, document.getElementById('performActionBtn')); } 
+        else { alert("No password is required for this network."); }
+    }
+    else if (act.type === 'CONTACT') {
+        let blob = new Blob([act.payload], {type: "text/vcard"});
+        saveAs(blob, "contact.vcf");
+    }
+    else if (act.type === 'CALENDAR') {
+        let blob = new Blob([act.payload], {type: "text/calendar"});
+        saveAs(blob, "event.ics");
+    }
+}
+
+function clearScanResult() {
+    rawScanData = "";
+    document.getElementById("scanResult").innerHTML = '<span style="color: #64748b;">No data scanned yet.</span>';
+    document.getElementById("scanActionContainer").style.display = 'none';
+    currentSuggestedAction = null; 
+    document.getElementById("fileScan").value = ""; 
+    document.getElementById("urlScanInput").value = ""; 
+    stopScanner();
+    document.getElementById("reader").innerHTML = "";
+}
+
+function startScanner() {
+    stopScanner(); 
+    document.getElementById("reader").innerHTML = "";
+    if(!html5QrcodeScanner) html5QrcodeScanner = new Html5Qrcode("reader");
+    
+    let config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    let onSuccess = (decodedText) => { showScanResult(decodedText); stopScanner(); };
+
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 0) {
+            let selectedCam = devices[0].id; 
+            for (let i = 0; i < devices.length; i++) {
+                if (devices[i].label.toLowerCase().includes("back") || devices[i].label.toLowerCase().includes("environment")) {
+                    selectedCam = devices[i].id; break;
+                }
+            }
+            html5QrcodeScanner.start(selectedCam, config, onSuccess).catch(() => {
+                html5QrcodeScanner.start({ facingMode: "environment" }, config, onSuccess).catch(() => html5QrcodeScanner.start({ facingMode: "user" }, config, onSuccess));
+            });
+        } else { alert("No camera found."); }
+    }).catch(err => {
+        html5QrcodeScanner.start({ facingMode: "environment" }, config, onSuccess).catch(() => {
+            html5QrcodeScanner.start({ facingMode: "user" }, config, onSuccess).catch(() => alert("Camera blocked or unavailable."));
+        });
+    });
+}
+
+function stopScanner(){ if(html5QrcodeScanner && html5QrcodeScanner.isScanning) { html5QrcodeScanner.stop().catch(err => console.error(err)); } }
+
+function openCropper(imageFile) {
+    stopScanner();
+    document.getElementById("reader").innerHTML = '<div style="color: #38bdf8; text-align: center; padding: 20px;">Preparing image...</div>';
+    
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('cropImage').src = e.target.result;
+        document.getElementById('cropModal').style.display = 'flex';
+        
+        if(cropper) cropper.destroy();
+        cropper = new Cropper(document.getElementById('cropImage'), { viewMode: 1, autoCropArea: 0.8, background: false });
+    }
+    reader.readAsDataURL(imageFile);
+}
+
+function closeCropper() {
+    document.getElementById('cropModal').style.display = 'none';
+    if(cropper) cropper.destroy();
+    document.getElementById('fileScan').value = ""; 
+    document.getElementById("reader").innerHTML = ""; 
+}
+
+function scanCroppedImage() {
+    if(!cropper) return;
+    document.getElementById("scanResult").innerHTML = '<span style="color: #38bdf8;">Scanning cropped area...</span>';
+    
+    cropper.getCroppedCanvas().toBlob((blob) => {
+        let croppedFile = new File([blob], "cropped.jpg", { type: "image/jpeg" });
+        closeCropper();
+        
+        const tempHtml5QrCode = new Html5Qrcode("reader"); 
+        tempHtml5QrCode.scanFile(croppedFile, false)
+            .then(decodedText => showScanResult(decodedText))
+            .catch(err => {
+                document.getElementById("scanResult").innerHTML = '<span style="color: #ef4444;">No QR or Barcode detected in the cropped area. Try again.</span>';
+            });
+    }, "image/jpeg");
+}
+
+async function scanFromUrl() {
+    let url = document.getElementById("urlScanInput").value.trim();
+    if(!url) return alert("Please enter a valid image URL");
+    document.getElementById("scanResult").innerHTML = '<span style="color: #38bdf8;">Fetching image from URL...</span>';
+    try {
+        let response = await fetch(url);
+        if (!response.ok) throw new Error("Network issue");
+        let blob = await response.blob();
+        openCropper(new File([blob], "url_image.jpg", { type: blob.type })); 
+    } catch (error) {
+        document.getElementById("scanResult").innerHTML = `<span style="color: #ef4444;">Could not load image. Try saving the image and uploading it instead.</span>`;
+    }
+}
+
+document.getElementById('fileScan').addEventListener('change', e => { if (e.target.files.length > 0) openCropper(e.target.files[0]); });
+document.addEventListener('paste', function(e) {
+    let activeTag = document.activeElement.tagName.toLowerCase();
+    if (activeTag === 'input' || activeTag === 'textarea') return;
+    let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) { openCropper(items[i].getAsFile()); break; }
+    }
+});
+</script>
+</body>
+</html>
