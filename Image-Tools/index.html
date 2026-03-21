@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image & Photo Tool</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* --- Base Styles & Theme --- */
+        body { font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1f2937, #111827); color: white; margin: 0; padding: 0; }
+        .app-container { max-width: 1400px; margin: auto; padding: 25px; box-sizing: border-box; overflow-x: hidden; }
+        .app-header { text-align: center; color: #38bdf8; font-size: 28px; margin-top: 0; margin-bottom: 30px; font-weight: bold; }
+
+        .tools-grid { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+        @media (min-width: 950px) { .tools-grid { grid-template-columns: 350px 1fr; } }
+
+        .right-column { display: flex; flex-direction: column; gap: 20px; }
+
+        section {
+            padding: 20px; background: #0f172a; border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); border: 1px solid #1e293b; transition: all 0.3s ease; position: relative;
+        }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 15px; }
+        .section-header h2 { margin: 0; font-size: 18px; color: #e2e8f0; }
+
+        input[type="text"], input[type="number"], input[type="color"], select, input[type="range"] {
+            padding: 8px; margin: 4px 0; border-radius: 5px; border: 1px solid #334155;
+            box-sizing: border-box; background: #1e293b; color: #e2e8f0; font-family: inherit;
+        }
+        input[type="file"] { width: auto; background: transparent; padding: 0; color: #e2e8f0; margin-bottom: 10px; }
+
+        button, .btn-upload-label {
+            padding: 8px 12px; border-radius: 5px; border: none; background: #38bdf8;
+            color: black; font-weight: bold; cursor: pointer; transition: background 0.3s; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+            font-size: 13.3333px; font-family: inherit; box-sizing: border-box; text-decoration: none;
+        }
+        button:hover, .btn-upload-label:hover { background: #0ea5e9; }
+        button:disabled, .btn-upload-label.disabled { background: #334155; color: #94a3b8; cursor: not-allowed; pointer-events: none;}
+        
+        .btn-secondary { background: #1e293b; color: #38bdf8; border: 1px solid #38bdf8; }
+        .btn-secondary:hover { background: #334155; }
+        .btn-success { background: #10b981; color: white; border: 1px solid #10b981; }
+        .btn-success:hover { background: #059669; }
+
+        /* Grids */
+        .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; background: #1e293b; padding: 10px; border-radius: 6px; min-height: 100px; max-height: 600px; overflow-y: auto; }
+        .thumbnail-item { background: #0f172a; padding: 6px; border-radius: 6px; border: 1px solid #334155; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s;}
+        .thumbnail-item:hover { border-color: #38bdf8; }
+        .thumbnail-item.active { border-color: #10b981; background: #1e293b; }
+        .thumbnail-item img { max-width: 100%; height: 70px; object-fit: cover; border-radius: 4px; background: white; }
+        .page-label { font-size: 11px; color: #94a3b8; margin-top: 6px; word-break: break-all; }
+
+        /* Panels & Controls */
+        .control-panel { background: #1e293b; padding: 12px 15px; border-radius: 6px; border: 1px solid #334155; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;}
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        .control-label { font-size: 13px; color: #94a3b8; font-weight: bold; text-transform: uppercase;}
+        
+        .image-stats { background: #0f172a; border: 1px dashed #38bdf8; padding: 10px; border-radius: 6px; font-size: 13px; color: #e2e8f0; display: inline-block; margin-bottom: 10px; width: 100%; box-sizing: border-box;}
+        .image-stats span { color: #38bdf8; font-weight: bold; }
+
+        /* Canvas & Overlays */
+        #editor-canvas-container {
+            position: relative; display: flex; justify-content: center; align-items: center; border: 1px solid #334155;
+            background: #1e293b; padding: 10px; border-radius: 6px; overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); width: 100%; min-height: 300px;
+        }
+        #main-image { max-width: 100%; max-height: 50vh; display: none; border-radius: 4px;}
+        
+        /* Live Overlay Styles */
+        .live-overlay {
+            position: absolute; z-index: 10; cursor: move; user-select: none;
+            border: 1px dashed transparent; padding: 2px; line-height: 1; box-sizing: border-box;
+        }
+        .live-overlay.text-type { font-family: Arial, sans-serif; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); white-space: nowrap; }
+        .live-overlay.selected { border-color: #38bdf8; outline: 1px solid #0ea5e9; background: rgba(56, 189, 248, 0.1); }
+        
+        .del-overlay-btn {
+            position: absolute; top: -12px; left: -12px; background: #ef4444; color: white; border: none;
+            border-radius: 50%; width: 24px; height: 24px; font-size: 12px; cursor: pointer;
+            display: none; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .resize-handle {
+            position: absolute; bottom: -8px; right: -8px; width: 16px; height: 16px; 
+            background: #38bdf8; border: 2px solid #1e293b; border-radius: 50%; 
+            cursor: nwse-resize; z-index: 12; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .live-overlay.selected .del-overlay-btn, .live-overlay.selected .resize-handle { display: flex; }
+
+        .slider-container { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 6px 12px; border-radius: 6px; border: 1px solid #334155; }
+        .slider-label { font-size: 11px; color: #94a3b8; font-weight: bold; }
+        /* --- Mobile Portrait Optimizations --- */
+        @media (max-width: 600px) {
+            .app-container { padding: 15px 10px; }
+            .control-panel { flex-direction: column; align-items: stretch; gap: 12px; }
+            .control-group { 
+                border-right: none !important; 
+                padding-right: 0 !important; 
+                flex-wrap: wrap; 
+                justify-content: flex-start;
+                width: 100%;
+            }
+            /* Allows fixed-width inputs to shrink gracefully */
+            .control-group input { max-width: 100%; }
+            .slider-container { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h1 class="app-header">Image & Photo Tool</h1>
+
+        <div class="tools-grid">
+            <section>
+                <div class="section-header"><h2>Import Files</h2></div>
+                <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp, image/gif, image/svg+xml" multiple>
+                
+                <div style="font-size: 13px; margin-bottom: 10px; color: #94a3b8; font-weight: bold;">Gallery (Click to Select)</div>
+                <div class="thumb-grid" id="gallery"></div>
+            </section>
+
+            <div class="right-column">
+                
+                <section>
+                    <div class="section-header"><h2>Edit, Filter & Watermark</h2></div>
+                    
+                    <div class="control-panel">
+                        <div class="control-group" style="border-right: 1px solid #334155; padding-right: 15px;">
+                            <span class="control-label">Filters:</span>
+                            <select id="filter-preset" class="filter-input">
+                                <option value="none">None</option>
+                                <option value="grayscale(100%)">Grayscale</option>
+                                <option value="sepia(100%)">Sepia</option>
+                                <option value="invert(100%)">Invert</option>
+                                <option value="blur(4px)">Blur</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label" title="Brightness">☀</span>
+                            <input type="range" id="filter-bright" class="filter-input" min="0" max="200" value="100" style="width: 70px;">
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label" title="Contrast">◐</span>
+                            <input type="range" id="filter-cont" class="filter-input" min="0" max="200" value="100" style="width: 70px;">
+                        </div>
+                        <div class="control-group" style="border-right: 1px solid #334155; padding-right: 15px;">
+                            <span class="control-label" title="Saturation">🌈</span>
+                            <input type="range" id="filter-sat" class="filter-input" min="0" max="200" value="100" style="width: 70px;">
+                        </div>
+                        
+                        <div class="control-group">
+                            <button id="btn-toggle-crop" class="btn-secondary" disabled>
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 3a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4H2a.5.5 0 0 1 0-1h8.5zm-5 10a.5.5 0 0 1-.5-.5v-8a.5.5 0 0 1 1 0v7.5H14a.5.5 0 0 1 0 1H5.5z"/></svg> Crop
+                            </button>
+                        </div>
+                        <button id="btn-reset-filters" class="btn-secondary" style="margin-left:auto; padding: 4px 8px;">Reset</button>
+                    </div>
+
+                    <div class="control-panel">
+                        <div class="control-group" style="border-right: 1px solid #334155; padding-right: 15px;">
+                            <input type="text" id="wm-text" placeholder="Watermark Text" style="width: 130px;">
+                            <input type="color" id="wm-color" value="#ffffff" title="Text Color" style="width: 35px; padding: 2px;">
+                            <input type="number" id="wm-size" value="32" placeholder="Size" style="width: 55px;" title="Font Size (px)">
+                            <button id="btn-add-wm" class="btn-secondary" disabled>+ Text</button>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="btn-upload-label btn-secondary disabled" id="label-logo-upload">
+                                🖼 + Logo
+                                <input type="file" id="logo-upload" accept="image/png, image/jpeg, image/webp" style="display:none;" disabled>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="editor-canvas-container">
+                        <span id="placeholder-text" style="color: #94a3b8;">Select an image from the gallery</span>
+                        <img id="main-image" src="" alt="Editor">
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header"><h2>Compress</h2></div>
+                    
+                    <div class="image-stats" id="img-stats-box" style="display: none;">
+                        Original Size: <span id="stat-w">0</span> x <span id="stat-h">0</span> px &nbsp;|&nbsp; Aspect Ratio: <span id="stat-ratio">0:0</span>
+                    </div>
+
+                    <div class="control-panel" style="margin-bottom: 0;">
+                        <div class="control-group" style="border-right: 1px solid #334155; padding-right: 15px;">
+                            <span class="control-label">Max Dimensions:</span>
+                            <input type="number" id="resize-width" placeholder="W (px)" style="width: 75px;">
+                            <span style="color: #64748b;">x</span>
+                            <input type="number" id="resize-height" placeholder="H (px)" style="width: 75px;">
+                        </div>
+                        
+                        <div class="control-group" style="border-right: 1px solid #334155; padding-right: 15px;">
+                            <span class="control-label" style="color: #10b981;">Target Size:</span>
+                            <input type="number" id="target-kb" placeholder="Max KB" style="width: 90px; border-color: #10b981;" title="Leave blank to use manual slider below">
+                        </div>
+
+                        <div class="control-group" id="manual-quality-group">
+                            <span class="control-label">Manual Quality:</span>
+                            <div class="slider-container">
+                                <span class="slider-label">Small File</span>
+                                <input type="range" id="export-quality" min="0.1" max="0.92" step="0.05" value="0.8">
+                                <span class="slider-label">High Quality</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header"><h2>Convert & Export</h2></div>
+                    <div class="control-panel" style="margin-bottom: 0;">
+                        <div class="control-group" style="margin-right: auto;">
+                            <span class="control-label">Format:</span>
+                            <select id="export-format">
+                                <option value="image/jpeg">.JPG</option>
+                                <option value="image/png">.PNG</option>
+                                <option value="image/webp">.WEBP</option>
+                                <option value="image/gif">.GIF</option>
+                                <option value="image/svg+xml">.SVG</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group" style="border-right: 1px solid #334155; padding-right: 15px;">
+                            <label style="color: #38bdf8; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="apply-bulk-edits" checked style="width: 16px; height: 16px;">
+                                Apply Edits to ALL
+                            </label>
+                        </div>
+
+                        <div class="control-group">
+                            <button id="btn-download-single" class="btn-secondary" disabled>⬇ Single</button>
+                            <button id="btn-download-zip" class="btn-success" disabled>📦 Export All (.zip)</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('file-input');
+        const gallery = document.getElementById('gallery');
+        const mainImage = document.getElementById('main-image');
+        const canvasContainer = document.getElementById('editor-canvas-container');
+        const placeholderText = document.getElementById('placeholder-text');
+        
+        const btnToggleCrop = document.getElementById('btn-toggle-crop');
+        const btnAddWm = document.getElementById('btn-add-wm');
+        const logoUpload = document.getElementById('logo-upload');
+        const labelLogoUpload = document.getElementById('label-logo-upload');
+        const wmSizeInput = document.getElementById('wm-size');
+        const btnDownloadSingle = document.getElementById('btn-download-single');
+        const btnDownloadZip = document.getElementById('btn-download-zip');
+        const bulkEditsCheck = document.getElementById('apply-bulk-edits');
+        
+        const formatSelect = document.getElementById('export-format');
+        const qualitySlider = document.getElementById('export-quality');
+        const targetKbInput = document.getElementById('target-kb');
+        const manualQualityGroup = document.getElementById('manual-quality-group');
+        const resizeWidthInput = document.getElementById('resize-width');
+        const resizeHeightInput = document.getElementById('resize-height');
+
+        const filterBright = document.getElementById('filter-bright'), filterCont = document.getElementById('filter-cont'), filterSat = document.getElementById('filter-sat'), filterPreset = document.getElementById('filter-preset');
+        const statW = document.getElementById('stat-w'), statH = document.getElementById('stat-h'), statRatio = document.getElementById('stat-ratio'), statsBox = document.getElementById('img-stats-box');
+
+        let imagesData = []; 
+        let activeImageId = null;
+        let cropper = null;
+
+        function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+        // Dim manual slider if Target KB is used
+        targetKbInput.addEventListener('input', () => {
+            manualQualityGroup.style.opacity = targetKbInput.value ? '0.3' : '1';
+            qualitySlider.disabled = !!targetKbInput.value;
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            Array.from(e.target.files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const imgObj = { id: Date.now() + Math.random().toString(36).substr(2, 9), name: file.name.split('.')[0], src: event.target.result };
+                    imagesData.push(imgObj);
+                    renderGallery();
+                    if (mainImage.style.display === 'none' || !mainImage.src) loadIntoEditor(imgObj.id);
+                    btnDownloadZip.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        function renderGallery() {
+            gallery.innerHTML = '';
+            imagesData.forEach(img => {
+                const div = document.createElement('div');
+                div.className = `thumbnail-item ${img.id === activeImageId ? 'active' : ''}`;
+                div.onclick = () => loadIntoEditor(img.id);
+                div.innerHTML = `<img src="${img.src}" alt="${img.name}"><span class="page-label">${img.name}</span>`;
+                gallery.appendChild(div);
+            });
+        }
+
+        function loadIntoEditor(id) {
+            const imgData = imagesData.find(i => i.id === id);
+            if (!imgData) return;
+
+            if (cropper) {
+                cropper.destroy(); cropper = null;
+                btnToggleCrop.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 3a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4H2a.5.5 0 0 1 0-1h8.5zm-5 10a.5.5 0 0 1-.5-.5v-8a.5.5 0 0 1 1 0v7.5H14a.5.5 0 0 1 0 1H5.5z"/></svg> Crop';
+                btnToggleCrop.classList.replace('btn-success', 'btn-secondary');
+            }
+
+            activeImageId = id;
+            
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                const w = this.naturalWidth, h = this.naturalHeight, divisor = gcd(w, h);
+                statW.textContent = w; statH.textContent = h; statRatio.textContent = `${w/divisor}:${h/divisor}`;
+                statsBox.style.display = 'block';
+
+                mainImage.src = imgData.src; mainImage.style.display = 'block'; placeholderText.style.display = 'none';
+                
+                btnToggleCrop.disabled = false; btnAddWm.disabled = false; btnDownloadSingle.disabled = false;
+                logoUpload.disabled = false; labelLogoUpload.classList.remove('disabled');
+                
+                updateLiveFilters();
+                renderGallery(); 
+            };
+            tempImg.src = imgData.src;
+        }
+
+        // --- FILTER LOGIC ---
+        function getFilterString() {
+            const b = filterBright.value, c = filterCont.value, s = filterSat.value, p = filterPreset.value;
+            let filterStr = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
+            if (p !== 'none') filterStr += ` ${p}`;
+            return filterStr;
+        }
+
+        function updateLiveFilters() {
+            const filterStr = getFilterString();
+            mainImage.style.filter = filterStr;
+            const cropperImg = document.querySelector('.cropper-canvas img');
+            if (cropperImg) cropperImg.style.filter = filterStr;
+        }
+
+        document.querySelectorAll('.filter-input').forEach(input => { input.addEventListener('input', updateLiveFilters); });
+        document.getElementById('btn-reset-filters').addEventListener('click', () => {
+            filterBright.value = 100; filterCont.value = 100; filterSat.value = 100; filterPreset.value = 'none';
+            updateLiveFilters();
+        });
+
+        // --- CROP LOGIC ---
+        btnToggleCrop.addEventListener('click', () => {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas();
+                const newSrc = canvas.toDataURL('image/png'); 
+                const activeImg = imagesData.find(i => i.id === activeImageId);
+                if(activeImg) { activeImg.src = newSrc; mainImage.src = newSrc; loadIntoEditor(activeImageId); }
+                
+                cropper.destroy(); cropper = null;
+                btnToggleCrop.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 3a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4H2a.5.5 0 0 1 0-1h8.5zm-5 10a.5.5 0 0 1-.5-.5v-8a.5.5 0 0 1 1 0v7.5H14a.5.5 0 0 1 0 1H5.5z"/></svg> Crop';
+                btnToggleCrop.classList.replace('btn-success', 'btn-secondary');
+            } else {
+                cropper = new Cropper(mainImage, { viewMode: 1, background: false, zoomable: false });
+                btnToggleCrop.innerHTML = 'Apply Crop ✔';
+                btnToggleCrop.classList.replace('btn-secondary', 'btn-success');
+                updateLiveFilters(); 
+            }
+        });
+
+        // --- WATERMARK (TEXT & LOGO) LOGIC ---
+        let activeDrag = null, activeResize = null, startX, startY, startWMSize;
+
+        function createOverlayNode(contentHTML, isText) {
+            const wmNode = document.createElement('div');
+            wmNode.className = `live-overlay selected ${isText ? 'text-type' : ''}`;
+            wmNode.innerHTML = contentHTML;
+            wmNode.style.top = '40%'; wmNode.style.left = '40%';
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'del-overlay-btn'; delBtn.innerHTML = '×';
+            delBtn.onpointerdown = (e) => { e.stopPropagation(); wmNode.remove(); };
+            
+            const resizeBtn = document.createElement('div');
+            resizeBtn.className = 'resize-handle'; resizeBtn.onpointerdown = startWmResize;
+
+            wmNode.appendChild(delBtn); wmNode.appendChild(resizeBtn);
+            wmNode.addEventListener('pointerdown', startWmDrag);
+            canvasContainer.appendChild(wmNode);
+            return wmNode;
+        }
+
+        // Add Text
+        btnAddWm.addEventListener('click', () => {
+            const text = document.getElementById('wm-text').value || "Watermark";
+            const color = document.getElementById('wm-color').value;
+            const size = wmSizeInput.value || "32";
+            
+            const node = createOverlayNode(`<span class="wm-content">${text}</span>`, true);
+            node.style.color = color; node.style.fontSize = `${size}px`;
+        });
+
+        // Add Logo Image
+        logoUpload.addEventListener('change', function(e) {
+            if(!this.files.length) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                createOverlayNode(`<img src="${ev.target.result}" class="wm-image" style="width: 150px; height: auto; pointer-events: none; display: block;">`, false);
+            };
+            reader.readAsDataURL(this.files[0]);
+            this.value = ''; // Reset input
+        });
+
+        wmSizeInput.addEventListener('input', (e) => {
+            const selected = document.querySelector('.live-overlay.selected.text-type');
+            if (selected) selected.style.fontSize = `${e.target.value}px`;
+        });
+
+        canvasContainer.addEventListener('pointerdown', (e) => {
+            if (e.target === canvasContainer || e.target === mainImage || e.target.classList.contains('cropper-wrap-box')) {
+                document.querySelectorAll('.live-overlay').forEach(el => el.classList.remove('selected'));
+            }
+        });
+
+        function startWmDrag(e) {
+            if (e.target.classList.contains('del-overlay-btn') || e.target.classList.contains('resize-handle')) return;
+            document.querySelectorAll('.live-overlay').forEach(el => el.classList.remove('selected'));
+            activeDrag = this; activeDrag.classList.add('selected');
+            
+            if(activeDrag.classList.contains('text-type')) {
+                wmSizeInput.value = parseInt(window.getComputedStyle(activeDrag).fontSize);
+            }
+
+            const rect = activeDrag.getBoundingClientRect();
+            offsetX = e.clientX - rect.left; offsetY = e.clientY - rect.top;
+            document.addEventListener('pointermove', doWmDrag); document.addEventListener('pointerup', stopWmDrag);
+        }
+
+        function doWmDrag(e) {
+            if (!activeDrag) return;
+            const containerRect = canvasContainer.getBoundingClientRect();
+            activeDrag.style.left = `${e.clientX - containerRect.left - offsetX}px`;
+            activeDrag.style.top = `${e.clientY - containerRect.top - offsetY}px`;
+        }
+        function stopWmDrag() { activeDrag = null; document.removeEventListener('pointermove', doWmDrag); document.removeEventListener('pointerup', stopWmDrag); }
+
+        function startWmResize(e) {
+            e.stopPropagation(); activeResize = this.parentElement;
+            startX = e.clientX; startY = e.clientY;
+            
+            if(activeResize.classList.contains('text-type')) {
+                startWMSize = parseInt(window.getComputedStyle(activeResize).fontSize);
+            } else {
+                startWMSize = parseInt(window.getComputedStyle(activeResize.querySelector('.wm-image')).width);
+            }
+            
+            document.addEventListener('pointermove', doWmResize); document.addEventListener('pointerup', stopWmResize);
+        }
+
+        function doWmResize(e) {
+            if (!activeResize) return;
+            const deltaX = e.clientX - startX;
+            const newSize = Math.max(15, startWMSize + deltaX); 
+            
+            if(activeResize.classList.contains('text-type')) {
+                activeResize.style.fontSize = `${newSize}px`; 
+                wmSizeInput.value = newSize; 
+            } else {
+                activeResize.querySelector('.wm-image').style.width = `${newSize}px`;
+            }
+        }
+        function stopWmResize() { activeResize = null; document.removeEventListener('pointermove', doWmResize); document.removeEventListener('pointerup', stopWmResize); }
+
+
+        // --- EXPORT ENGINES (BAKING & TARGET COMPRESS) ---
+        function getExtension() {
+            let val = formatSelect.value;
+            if (val === 'image/jpeg') return 'jpg';
+            if (val === 'image/svg+xml') return 'svg';
+            return val.split('/')[1]; 
+        }
+
+        function bakeWatermarks(baseCanvas) {
+            const overlays = document.querySelectorAll('.live-overlay');
+            if (overlays.length === 0) return baseCanvas;
+
+            const ctx = baseCanvas.getContext('2d');
+            const imgRect = mainImage.getBoundingClientRect();
+
+            overlays.forEach(wm => {
+                const wmRect = wm.getBoundingClientRect();
+                const percentX = (wmRect.left - imgRect.left) / imgRect.width;
+                const percentY = (wmRect.top - imgRect.top) / imgRect.height;
+                const percentWidth = wmRect.width / imgRect.width;
+                const percentHeight = wmRect.height / imgRect.height;
+
+                const drawX = percentX * baseCanvas.width;
+                const drawY = percentY * baseCanvas.height;
+                const drawW = percentWidth * baseCanvas.width;
+                const drawH = percentHeight * baseCanvas.height;
+
+                const textSpan = wm.querySelector('.wm-content');
+                const imgElement = wm.querySelector('.wm-image');
+
+                if (textSpan) {
+                    const scaleY = baseCanvas.height / imgRect.height;
+                    const fontSize = parseInt(window.getComputedStyle(wm).fontSize);
+                    ctx.font = `bold ${fontSize * scaleY}px Arial`;
+                    ctx.fillStyle = wm.style.color;
+                    ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 5 * scaleY; ctx.shadowOffsetX = 2 * scaleY; ctx.shadowOffsetY = 2 * scaleY;
+                    ctx.fillText(textSpan.textContent, drawX, drawY + (drawH * 0.75));
+                    ctx.shadowColor = "transparent";
+                } else if (imgElement) {
+                    ctx.drawImage(imgElement, drawX, drawY, drawW, drawH);
+                }
+            });
+            return baseCanvas;
+        }
+
+        function applyCompressionResize(sourceCanvas) {
+            const maxWidth = parseInt(resizeWidthInput.value) || 0;
+            const maxHeight = parseInt(resizeHeightInput.value) || 0;
+            let width = sourceCanvas.width, height = sourceCanvas.height;
+
+            if (maxWidth > 0 || maxHeight > 0) {
+                const ratio = Math.min(maxWidth > 0 ? maxWidth / width : 1, maxHeight > 0 ? maxHeight / height : 1);
+                if (ratio < 1) { width *= ratio; height *= ratio; }
+            }
+            const compressedCanvas = document.createElement('canvas');
+            compressedCanvas.width = width; compressedCanvas.height = height;
+            compressedCanvas.getContext('2d').drawImage(sourceCanvas, 0, 0, width, height);
+            return compressedCanvas;
+        }
+
+        function generateValidSVG(canvas) {
+            const w = canvas.width, h = canvas.height;
+            const base64PNG = canvas.toDataURL('image/png');
+            const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><image href="${base64PNG}" width="${w}" height="${h}"/></svg>`;
+            return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
+        }
+
+        // --- ASYNC BINARY SEARCH COMPRESSOR ---
+        // Runs a fast loop to find the exact quality needed to stay under Target KB
+        async function getTargetSizeDataURL(canvas, format, targetKB, manualQuality) {
+            if (format === 'image/svg+xml') return generateValidSVG(canvas);
+            
+            // Only JPG and WEBP support quality adjustments in canvas
+            if (!targetKB || targetKB <= 0 || (format !== 'image/jpeg' && format !== 'image/webp')) {
+                return canvas.toDataURL(format, manualQuality);
+            }
+            
+            const targetBytes = targetKB * 1024;
+            let minQ = 0.05, maxQ = 0.92, bestDataUrl = canvas.toDataURL(format, 0.05);
+            
+            // Fast fail: If max quality is already under the target size, just use it
+            let maxData = canvas.toDataURL(format, 0.92);
+            if (Math.round(maxData.length * 0.75) <= targetBytes) return maxData;
+
+            // Binary search (7 steps gives ~1% accuracy)
+            for(let i=0; i<7; i++) {
+                let midQ = (minQ + maxQ) / 2;
+                let dataUrl = canvas.toDataURL(format, midQ);
+                let bytes = Math.round(dataUrl.length * 0.75); // rough base64 byte calc
+                
+                if (bytes <= targetBytes) {
+                    bestDataUrl = dataUrl;
+                    minQ = midQ; // Keep pushing quality up safely
+                } else {
+                    maxQ = midQ; // Too big, bring quality down
+                }
+            }
+            return bestDataUrl;
+        }
+
+        function processImagePipeline(img, isTargetActiveImage, applyGlobalEdits) {
+            let baseCanvas = document.createElement('canvas');
+            const ctx = baseCanvas.getContext('2d');
+
+            if (isTargetActiveImage && cropper) {
+                const cropped = cropper.getCroppedCanvas();
+                baseCanvas.width = cropped.width; baseCanvas.height = cropped.height;
+                if (applyGlobalEdits) ctx.filter = getFilterString();
+                ctx.drawImage(cropped, 0, 0);
+            } else {
+                baseCanvas.width = img.naturalWidth; baseCanvas.height = img.naturalHeight;
+                if (applyGlobalEdits) ctx.filter = getFilterString();
+                ctx.drawImage(img, 0, 0, baseCanvas.width, baseCanvas.height);
+            }
+            
+            ctx.filter = 'none'; // reset
+            if (applyGlobalEdits) baseCanvas = bakeWatermarks(baseCanvas);
+            return applyCompressionResize(baseCanvas);
+        }
+
+        btnDownloadSingle.addEventListener('click', () => {
+            const activeImg = imagesData.find(i => i.id === activeImageId);
+            if (!activeImg) return;
+            
+            btnDownloadSingle.textContent = "Processing..."; btnDownloadSingle.disabled = true;
+
+            const img = new Image();
+            img.onload = async () => {
+                const finalCanvas = processImagePipeline(img, true, true);
+                const format = formatSelect.value;
+                const manualQuality = parseFloat(qualitySlider.value);
+                const targetKB = parseFloat(targetKbInput.value);
+                
+                let dataUrl = await getTargetSizeDataURL(finalCanvas, format, targetKB, manualQuality);
+
+                const link = document.createElement('a');
+                link.download = `${activeImg.name}_edited.${getExtension()}`;
+                link.href = dataUrl; link.click();
+                
+                btnDownloadSingle.textContent = "⬇ Single"; btnDownloadSingle.disabled = false;
+            };
+            img.src = activeImg.src;
+        });
+
+        btnDownloadZip.addEventListener('click', async () => {
+            if (imagesData.length === 0) return;
+            btnDownloadZip.textContent = "Processing..."; btnDownloadZip.disabled = true;
+
+            const zip = new JSZip();
+            const format = formatSelect.value;
+            const manualQuality = parseFloat(qualitySlider.value);
+            const targetKB = parseFloat(targetKbInput.value);
+            const ext = getExtension();
+            const applyEditsToAll = bulkEditsCheck.checked;
+
+            for (let i = 0; i < imagesData.length; i++) {
+                const imgData = imagesData[i];
+                const img = new Image();
+                await new Promise(res => { img.onload = res; img.src = imgData.src; });
+
+                const isTargetActiveImage = (imgData.id === activeImageId);
+                const applyGlobalEdits = applyEditsToAll || isTargetActiveImage;
+
+                const finalCanvas = processImagePipeline(img, isTargetActiveImage, applyGlobalEdits);
+                let dataUrl = await getTargetSizeDataURL(finalCanvas, format, targetKB, manualQuality);
+                
+                const base64Data = dataUrl.split(',')[1];
+                zip.file(`${imgData.name}_${i+1}.${ext}`, base64Data, {base64: true});
+            }
+
+            const content = await zip.generateAsync({type:"blob"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = "Batch_Edited_Images.zip";
+            link.click();
+
+            btnDownloadZip.textContent = "📦 Export All (.zip)"; btnDownloadZip.disabled = false;
+        });
+    </script>
+</body>
+</html>
