@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Studio</title>
+    <script src="libs/ffmpeg.js"></script>
+    <script src="libs/index.js"></script> <style>
+        :root {
+            --surface-card: #1e293b;
+            --surface-deep: #0f172a;
+            --border-color: #334155;
+            --text-light: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-primary: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+        }
+
+        body {
+            margin: 0; padding: 2rem; font-family: system-ui, -apple-system, sans-serif;
+            background: transparent; /* Inherits from Master Hub */
+            color: var(--text-light);
+        }
+
+        .dashboard { display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; max-width: 1400px; margin: 0 auto; }
+        .card { background-color: var(--surface-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
+        .drop-zone {
+            border: 2px dashed var(--border-color); border-radius: 8px; padding: 2rem 1rem;
+            text-align: center; background-color: var(--surface-deep); cursor: pointer; transition: 0.2s; margin-bottom: 1rem;
+        }
+        .drop-zone.dragover { border-color: var(--accent-primary); background-color: rgba(56, 189, 248, 0.05); }
+        .drop-zone span { color: var(--accent-primary); font-weight: 500; }
+        
+        .file-queue { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
+        .file-item { display: flex; justify-content: space-between; background: var(--surface-deep); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.8rem; border: 1px solid var(--border-color); }
+
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: var(--accent-primary); }
+        input[type="number"], select {
+            width: 100%; background-color: var(--surface-deep); color: var(--text-light);
+            border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; box-sizing: border-box; outline: none; font-family: inherit;
+        }
+        input:focus, select:focus { border-color: var(--accent-primary); }
+        .crop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        
+        button {
+            width: 100%; background-color: var(--accent-primary); color: var(--surface-deep);
+            border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { background-color: var(--accent-hover); }
+        button:disabled { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
+
+        .terminal {
+            background-color: var(--surface-deep); border-radius: 6px; padding: 1rem; height: 300px;
+            overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.875rem; border: 1px solid var(--border-color);
+        }
+        .terminal p { margin: 0.25rem 0; }
+        .log-info { color: var(--text-light); }
+        .log-success { color: var(--color-success); }
+        .log-error { color: var(--color-danger); }
+
+        #results { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+        .result-item { background: var(--surface-deep); padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid var(--border-color); }
+        .result-item a { color: var(--accent-primary); text-decoration: none; font-weight: 500; display: block; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="card sidebar">
+            <h2 style="margin-top:0; margin-bottom: 1.5rem;">Processing Queue</h2>
+            
+            <div class="drop-zone" id="dropZone">
+                <p>Drag media here<br>or <span>click to browse</span></p>
+                <input type="file" id="fileInput" multiple accept="video/*,audio/*,.aac" style="display: none;">
+            </div>
+            <div id="fileQueue" class="file-queue"></div>
+
+            <div class="form-group">
+                <label>Target Format</label>
+                <select id="outputFormat">
+                    <optgroup label="Video Formats">
+                        <option value="mp4">MP4</option>
+                        <option value="mkv">MKV</option>
+                        <option value="avi">AVI</option>
+                        <option value="mov">MOV</option>
+                        <option value="wmv">WMV</option>
+                        <option value="flv">FLV</option>
+                        <option value="webm">WebM</option>
+                        <option value="gif">GIF Animation</option>
+                    </optgroup>
+                    <optgroup label="Audio Formats">
+                        <option value="mp3">MP3</option>
+                        <option value="aac">AAC</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-light); font-weight: normal;">
+                    <input type="checkbox" id="compressCheck"> Heavy Compression (Video)
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Crop Settings (Leave blank to skip)</label>
+                <div class="crop-grid">
+                    <input type="number" id="cropW" placeholder="Width (px)">
+                    <input type="number" id="cropH" placeholder="Height (px)">
+                </div>
+            </div>
+
+            <button id="processBtn">Execute Engine</button>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">System Terminal</h3>
+            <div class="terminal" id="terminal">
+                <p class="log-info">System initialized. Awaiting files.</p>
+            </div>
+            <h3 style="margin-top: 2rem;">Local Outputs</h3>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        const processBtn = document.getElementById('processBtn');
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileQueue = document.getElementById('fileQueue');
+        const resultsDiv = document.getElementById('results');
+        let selectedFiles = [];
+
+        function log(msg, type = 'log-info') {
+            const p = document.createElement('p'); p.className = type; p.textContent = `> ${msg}`;
+            terminal.appendChild(p); terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // --- GLOBAL DRAG PREVENTER ---
+        window.addEventListener('dragover', function(e) { e.preventDefault(); }, false);
+        window.addEventListener('drop', function(e) { e.preventDefault(); }, false);
+
+        // --- DROP ZONE LOGIC ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { 
+            e.preventDefault(); dropZone.classList.add('dragover'); 
+        });
+        dropZone.addEventListener('dragleave', () => { 
+            dropZone.classList.remove('dragover'); 
+        });
+        dropZone.addEventListener('drop', (e) => { 
+            e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); 
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            fileQueue.innerHTML = '';
+            selectedFiles.forEach(f => {
+                fileQueue.innerHTML += `<div class="file-item"><span>${f.name}</span><span style="color:var(--text-muted)">${(f.size/1048576).toFixed(1)}MB</span></div>`;
+            });
+            log(`Queued ${selectedFiles.length} file(s) for processing.`);
+        }
+
+        // --- GLOBAL HISTORY HOOK ---
+        function sendToMasterHub(filename, blobUrl) {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NEW_EXPORT', filename: filename, url: blobUrl }, '*');
+            }
+        }
+
+        // --- ENGINE EXECUTION ---
+        processBtn.addEventListener('click', async () => {
+            if (typeof crossOriginIsolated === 'undefined' || !crossOriginIsolated) {
+                log('FATAL: Browser headers missing. Run your local server (.bat script) from the Master Hub folder.', 'log-error');
+                return;
+            }
+            if (!selectedFiles.length) return log('Error: Queue empty.', 'log-error');
+
+            processBtn.disabled = true;
+            resultsDiv.innerHTML = '';
+
+            try {
+                const { FFmpeg } = window.FFmpegWASM;
+                const { toBlobURL, fetchFile } = window.FFmpegUtil;
+                const ffmpeg = new FFmpeg();
+
+                ffmpeg.on('progress', ({ progress }) => { 
+                    log(`Processing... ${(progress * 100).toFixed(1)}%`); 
+                });
+                
+                log('Fetching local offline engine into memory...', 'log-info');
+                
+                // HYBRID FIX: Local JS for speed, Cloud CDN for the heavy 25MB+ WASM file
+                const baseURL = 'libs';
+                const wasmCDN = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm';
+                
+                await ffmpeg.load({
+                    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                    wasmURL: await toBlobURL(wasmCDN, 'application/wasm'),
+                    classWorkerURL: await toBlobURL(`${baseURL}/814.ffmpeg.js`, 'text/javascript')
+                });
+                
+                log('Offline FFmpeg loaded. Engine ready.', 'log-success');
+
+                const format = document.getElementById('outputFormat').value;
+                const compress = document.getElementById('compressCheck').checked;
+                const cropW = document.getElementById('cropW').value;
+                const cropH = document.getElementById('cropH').value;
+
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    log(`--- Executing file: ${file.name} ---`);
+                    
+                    const inName = `input_${i}.${file.name.split('.').pop()}`;
+                    const outName = `output_${i}.${format}`;
+                    const finalFilename = `${file.name.substring(0, file.name.lastIndexOf('.')) || file.name}_processed.${format}`;
+
+                    await ffmpeg.writeFile(inName, await fetchFile(file));
+
+                    let args = ['-i', inName];
+                    
+                    if (cropW) args.push('-vf', `crop=${cropW}:${cropH || cropW}`);
+                    
+                    if (format === 'mp3') {
+                        args.push('-vn', '-c:a', 'libmp3lame', '-q:a', '2');
+                    } else if (format === 'aac') {
+                        args.push('-vn', '-c:a', 'aac');
+                    } else if (format === 'gif') {
+                        args.push('-vf', 'fps=10,scale=320:-1:flags=lanczos');
+                    } else if (compress && ['mp4', 'mkv', 'mov', 'avi'].includes(format)) {
+                        args.push('-vcodec', 'libx264', '-crf', '28', '-preset', 'fast');
+                    }
+
+                    args.push(outName);
+                    
+                    log(`Executing: ffmpeg ${args.join(' ')}`);
+                    await ffmpeg.exec(args);
+
+                    const data = await ffmpeg.readFile(outName);
+                    
+                    let mimeType = `video/${format}`;
+                    if (['mp3', 'aac'].includes(format)) mimeType = `audio/${format}`;
+                    if (format === 'gif') mimeType = 'image/gif';
+
+                    const blob = new Blob([data.buffer], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="result-item">
+                            <div style="color:var(--color-success)">Completed</div>
+                            <a href="${url}" download="${finalFilename}">Download Local</a>
+                        </div>`;
+                    
+                    // Send to Master Hub History
+                    sendToMasterHub(finalFilename, url);
+                    log(`Completed: ${file.name}`, 'log-success');
+                }
+            } catch (err) {
+                // Catch exact errors, even if undefined message
+                log(`Engine Crash: ${err.message || err}`, 'log-error');
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
