@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Media Studio</title>
     <script src="libs/ffmpeg.js"></script>
-    <script src="libs/index.js"></script> <style>
+    <script src="libs/index.js"></script> 
+    <style>
         :root {
             --surface-card: #1e293b;
             --surface-deep: #0f172a;
@@ -19,9 +21,22 @@
         }
 
         body {
-            margin: 0; padding: 2rem; font-family: system-ui, -apple-system, sans-serif;
-            background: transparent; /* Inherits from Master Hub */
+            margin: 0; padding: 25px; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1f2937, #111827); 
             color: var(--text-light);
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        /* --- Global App Header matches Image Tool --- */
+        .app-header { 
+            text-align: center; 
+            color: #38bdf8; 
+            font-size: 28px; 
+            margin-top: 0; 
+            margin-bottom: 30px; 
+            font-weight: bold; 
         }
 
         .dashboard { display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; max-width: 1400px; margin: 0 auto; }
@@ -38,7 +53,7 @@
         .file-item { display: flex; justify-content: space-between; background: var(--surface-deep); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.8rem; border: 1px solid var(--border-color); }
 
         .form-group { margin-bottom: 1.25rem; }
-        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: var(--accent-primary); }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: bold; color: var(--accent-primary); }
         input[type="number"], select {
             width: 100%; background-color: var(--surface-deep); color: var(--text-light);
             border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; box-sizing: border-box; outline: none; font-family: inherit;
@@ -47,8 +62,8 @@
         .crop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
         
         button {
-            width: 100%; background-color: var(--accent-primary); color: var(--surface-deep);
-            border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s;
+            width: 100%; background-color: var(--accent-primary); color: #000;
+            border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: inherit;
         }
         button:hover { background-color: var(--accent-hover); }
         button:disabled { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
@@ -62,16 +77,29 @@
         .log-success { color: var(--color-success); }
         .log-error { color: var(--color-danger); }
 
-        #results { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-        .result-item { background: var(--surface-deep); padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid var(--border-color); }
-        .result-item a { color: var(--accent-primary); text-decoration: none; font-weight: 500; display: block; margin-top: 0.5rem; }
+        /* Local History Panel */
+        .local-history { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; }
+        .local-history h3 { margin: 0 0 1rem 0; font-size: 0.875rem; color: var(--accent-primary); text-transform: uppercase; font-weight: bold; }
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface-deep); padding: 0.5rem 0.75rem; border-radius: 4px;
+            margin-bottom: 0.5rem; font-size: 0.8rem; border: 1px solid var(--border-color);
+        }
+        .history-item a { color: var(--accent-primary); text-decoration: none; font-weight: bold; }
+        .history-item a:hover { text-decoration: underline; }
+
+        @media (max-width: 950px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
+    <h1 class="app-header">Media Studio</h1>
+
     <div class="dashboard">
         <div class="card sidebar">
-            <h2 style="margin-top:0; margin-bottom: 1.5rem;">Processing Queue</h2>
+            <h2 style="margin-top:0; margin-bottom: 1.5rem; font-size: 18px; color: #e2e8f0; border-bottom: 1px solid #334155; padding-bottom: 10px;">Processing Queue</h2>
             
             <div class="drop-zone" id="dropZone">
                 <p>Drag media here<br>or <span>click to browse</span></p>
@@ -114,15 +142,20 @@
             </div>
 
             <button id="processBtn">Execute Engine</button>
+
+            <div class="local-history">
+                <h3>Recent Exports</h3>
+                <div id="historyContainer">
+                    <div style="color: var(--text-muted); font-size: 0.8rem; text-align: center;">Outputs will appear here.</div>
+                </div>
+            </div>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0;">System Terminal</h3>
+            <h2 style="margin-top:0; margin-bottom: 1.5rem; font-size: 18px; color: #e2e8f0; border-bottom: 1px solid #334155; padding-bottom: 10px;">System Terminal</h2>
             <div class="terminal" id="terminal">
                 <p class="log-info">System initialized. Awaiting files.</p>
             </div>
-            <h3 style="margin-top: 2rem;">Local Outputs</h3>
-            <div id="results"></div>
         </div>
     </div>
 
@@ -132,7 +165,6 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const fileQueue = document.getElementById('fileQueue');
-        const resultsDiv = document.getElementById('results');
         let selectedFiles = [];
 
         function log(msg, type = 'log-info') {
@@ -140,11 +172,11 @@
             terminal.appendChild(p); terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // --- GLOBAL DRAG PREVENTER ---
+        // Prevent accidental drops
         window.addEventListener('dragover', function(e) { e.preventDefault(); }, false);
         window.addEventListener('drop', function(e) { e.preventDefault(); }, false);
 
-        // --- DROP ZONE LOGIC ---
+        // Drop Zone Logic
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { 
             e.preventDefault(); dropZone.classList.add('dragover'); 
@@ -166,23 +198,32 @@
             log(`Queued ${selectedFiles.length} file(s) for processing.`);
         }
 
-        // --- GLOBAL HISTORY HOOK ---
-        function sendToMasterHub(filename, blobUrl) {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'NEW_EXPORT', filename: filename, url: blobUrl }, '*');
+        // Local History Function 
+        function addLocalHistory(filename, url) {
+            const container = document.getElementById('historyContainer');
+            if(container.innerHTML.includes('Outputs will appear here')) {
+                container.innerHTML = '';
             }
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <span title="${filename}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">
+                    ${filename}
+                </span>
+                <a href="${url}" download="${filename}">Download</a>
+            `;
+            container.prepend(item);
         }
 
-        // --- ENGINE EXECUTION ---
+        // Engine Execution
         processBtn.addEventListener('click', async () => {
             if (typeof crossOriginIsolated === 'undefined' || !crossOriginIsolated) {
-                log('FATAL: Browser headers missing. Run your local server (.bat script) from the Master Hub folder.', 'log-error');
+                log('FATAL: Browser headers missing. Ensure Cloudflare _headers file is deployed.', 'log-error');
                 return;
             }
             if (!selectedFiles.length) return log('Error: Queue empty.', 'log-error');
 
             processBtn.disabled = true;
-            resultsDiv.innerHTML = '';
 
             try {
                 const { FFmpeg } = window.FFmpegWASM;
@@ -193,19 +234,19 @@
                     log(`Processing... ${(progress * 100).toFixed(1)}%`); 
                 });
                 
-                log('Fetching local offline engine into memory...', 'log-info');
+                log('Fetching engine into memory...', 'log-info');
                 
-                // HYBRID FIX: Local JS for speed, Cloud CDN for the heavy 25MB+ WASM file
+                // HYBRID FIX: Local JS for speed, Cloud CDN for the heavy WASM file
                 const baseURL = 'libs';
                 const wasmCDN = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm';
-                
+
                 await ffmpeg.load({
                     coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
                     wasmURL: await toBlobURL(wasmCDN, 'application/wasm'),
                     classWorkerURL: await toBlobURL(`${baseURL}/814.ffmpeg.js`, 'text/javascript')
                 });
                 
-                log('Offline FFmpeg loaded. Engine ready.', 'log-success');
+                log('FFmpeg loaded. Engine ready.', 'log-success');
 
                 const format = document.getElementById('outputFormat').value;
                 const compress = document.getElementById('compressCheck').checked;
@@ -250,18 +291,11 @@
                     const blob = new Blob([data.buffer], { type: mimeType });
                     const url = URL.createObjectURL(blob);
                     
-                    resultsDiv.innerHTML += `
-                        <div class="result-item">
-                            <div style="color:var(--color-success)">Completed</div>
-                            <a href="${url}" download="${finalFilename}">Download Local</a>
-                        </div>`;
-                    
-                    // Send to Master Hub History
-                    sendToMasterHub(finalFilename, url);
+                    // Add to Local History panel
+                    addLocalHistory(finalFilename, url);
                     log(`Completed: ${file.name}`, 'log-success');
                 }
             } catch (err) {
-                // Catch exact errors, even if undefined message
                 log(`Engine Crash: ${err.message || err}`, 'log-error');
             } finally {
                 processBtn.disabled = false;
