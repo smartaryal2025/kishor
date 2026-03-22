@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Date Converter</title>
+    <link rel="stylesheet" href="libs/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>Nepali Date Converter</h1>
+            <div id="live-date" class="live-date">
+                <span class="indicator"></span>
+                <span id="current-date-text">Loading today's date...</span>
+            </div>
+        </header>
+
+        <main class="card-container">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="ad-to-bs">Convert A.D. to B.S.</button>
+                <button class="tab-btn" data-tab="bs-to-ad">Convert B.S. to A.D.</button>
+            </div>
+
+            <section id="ad-to-bs" class="tab-content active">
+                <form id="form-ad-to-bs">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="ad-year">Year (A.D.)</label>
+                            <input type="number" id="ad-year" min="1944" max="2033" value="2026" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="ad-month">Month</label>
+                            <select id="ad-month" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="ad-day">Day</label>
+                            <select id="ad-day" required></select>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">Convert to B.S.</button>
+                        <button type="button" class="btn-secondary reset-btn">Reset</button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="bs-to-ad" class="tab-content">
+                <form id="form-bs-to-ad">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="bs-year">साल (वि.सं.)</label>
+                            <input type="text" inputmode="numeric" id="bs-year" value="२०८२" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="bs-month">महिना</label>
+                            <select id="bs-month" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="bs-day">गते</label>
+                            <select id="bs-day" required></select>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">Convert to A.D.</button>
+                        <button type="button" class="btn-secondary reset-btn">Reset</button>
+                    </div>
+                </form>
+            </section>
+
+            <div id="output-section" class="output-card hidden">
+                <h3>Converted Date</h3>
+                <div class="result-display">
+                    <p id="result-text" class="result-text"></p>
+                    <button id="copy-btn" class="btn-icon" title="Copy to clipboard">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
+                <div id="error-message" class="error-message hidden"></div>
+            </div>
+        </main>
+    </div>
+    <script src="libs/script.js"></script>
+</body>
+</html>
