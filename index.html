@@ -3,223 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utility Studio</title>
-    <style>
-        :root {
-            --bg-grad-start: #1f2937;
-            --bg-grad-end: #111827;
-            --surface-deep: #0f172a;
-            --border-color: #1e293b;
-            --text-light: #e2e8f0;
-            --text-muted: #94a3b8;
-            --accent-primary: #38bdf8;
-            --accent-hover: #0ea5e9;
-        }
-
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, var(--bg-grad-start), var(--bg-grad-end));
-            color: var(--text-light);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* Top Header Navigation */
-        .top-header {
-            background-color: var(--surface-deep);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            align-items: center;
-            z-index: 20;
-        }
-
-        .menu-toggle {
-            background: transparent;
-            border: none;
-            color: var(--text-light);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0;
-            margin-right: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s;
-        }
-
-        .menu-toggle:hover {
-            color: var(--accent-primary);
-        }
-
-        .brand {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: var(--text-light);
-            letter-spacing: 0.5px;
-        }
-
-        /* Main Layout */
-        .main-container {
-            display: flex;
-            flex-grow: 1;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 260px;
-            background-color: var(--surface-deep);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
-            transition: transform 0.3s ease, margin-left 0.3s ease;
-            z-index: 10;
-        }
-
-        .sidebar.hidden {
-            margin-left: -260px;
-        }
-
-        .nav-section {
-            padding: 1rem;
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-
-        .nav-item {
-            display: block;
-            padding: 0.75rem 1rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-light);
-        }
-
-        .nav-item.active {
-            background-color: rgba(56, 189, 248, 0.1);
-            color: var(--accent-primary);
-            border-left-color: var(--accent-primary);
-        }
-
-        /* Workspace */
-        .workspace {
-            flex-grow: 1;
-            position: relative;
-            background-color: transparent;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background-color: transparent;
-            display: block;
-        }
-
-        /* Mobile Overlay */
-        .mobile-overlay {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 5;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                position: absolute;
-                height: 100%;
-                transform: translateX(-100%);
-                margin-left: 0 !important;
-            }
-
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
-
-            .mobile-overlay.active {
-                display: block;
-                opacity: 1;
-            }
-        }
-    </style>
+    <title>Nepali Date Converter</title>
+    <link rel="stylesheet" href="libs/style.css">
 </head>
 <body>
-
-    <div class="top-header">
-        <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle Menu">☰</button>
-        <div class="brand">Utility Studio</div>
-    </div>
-
-    <div class="main-container">
-        <div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
-
-        <div class="sidebar" id="sidebar">
-            <div class="nav-section">
-                <a class="nav-item active" onclick="loadTool('QR-Tools/index.html', this)">🔳 QR & Barcode Lab</a>
-                <a class="nav-item" onclick="loadTool('PDF-Tools/index.html', this)">📄 PDF Toolkit</a>
-                <a class="nav-item" onclick="loadTool('Image-Tools/index.html', this)">🖼️ Image Studio</a>
-                <a class="nav-item" onclick="loadTool('Video-Tools/index.html', this)">🎥 Media Studio</a>
-                
-                <div style="margin: 1.5rem 0 0.5rem 1rem; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Utilities</div>
-                
-                <a class="nav-item" onclick="loadTool('UnitConverterWeb/index.html', this)">📏 Unit Converter</a>
-                <a class="nav-item" onclick="loadTool('DateConverter/index.html', this)">📅 Date Converter</a>
-                <a class="nav-item" onclick="loadTool('Uni-Tools/index.html', this)">🔣 Unicode Tools</a>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>Nepali Date Converter</h1>
+            <div id="live-date" class="live-date">
+                <span class="indicator"></span>
+                <span id="current-date-text">Loading today's date...</span>
             </div>
-        </div>
+        </header>
 
-        <div class="workspace">
-            <iframe name="toolFrame" id="toolFrame" src="QR-Tools/index.html"></iframe>
-        </div>
+        <main class="card-container">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="ad-to-bs">Convert A.D. to B.S.</button>
+                <button class="tab-btn" data-tab="bs-to-ad">Convert B.S. to A.D.</button>
+            </div>
+
+            <section id="ad-to-bs" class="tab-content active">
+                <form id="form-ad-to-bs">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="ad-year">Year (A.D.)</label>
+                            <input type="number" id="ad-year" min="1944" max="2033" value="2026" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="ad-month">Month</label>
+                            <select id="ad-month" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="ad-day">Day</label>
+                            <select id="ad-day" required></select>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">Convert to B.S.</button>
+                        <button type="button" class="btn-secondary reset-btn">Reset</button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="bs-to-ad" class="tab-content">
+                <form id="form-bs-to-ad">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="bs-year">साल (वि.सं.)</label>
+                            <input type="text" inputmode="numeric" id="bs-year" value="२०८२" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="bs-month">महिना</label>
+                            <select id="bs-month" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="bs-day">गते</label>
+                            <select id="bs-day" required></select>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">Convert to A.D.</button>
+                        <button type="button" class="btn-secondary reset-btn">Reset</button>
+                    </div>
+                </form>
+            </section>
+
+            <div id="output-section" class="output-card hidden">
+                <h3>Converted Date</h3>
+                <div class="result-display">
+                    <p id="result-text" class="result-text"></p>
+                    <button id="copy-btn" class="btn-icon" title="Copy to clipboard">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
+                <div id="error-message" class="error-message hidden"></div>
+            </div>
+        </main>
     </div>
-
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-
-        function toggleSidebar() {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.toggle('mobile-open');
-                overlay.classList.toggle('active');
-            } else {
-                sidebar.classList.toggle('hidden');
-            }
-        }
-
-        function loadTool(path, element) {
-            document.getElementById('toolFrame').src = path;
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
-
-            if (window.innerWidth <= 768 && sidebar.classList.contains('mobile-open')) {
-                toggleSidebar();
-            }
-        }
-
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('mobile-open');
-                overlay.classList.remove('active');
-            }
-        });
-    </script>
+    <script src="libs/script.js"></script>
 </body>
 </html>
