@@ -1,5 +1,5 @@
 // Change this version number whenever you update your code to force a cache refresh
-const CACHE_NAME = 'utility-studio-v1.1';
+const CACHE_NAME = 'utility-studio-v1.2';
 
 // Every file in your directory tree that needs to be cached for offline use
 const ASSETS_TO_CACHE = [
@@ -89,12 +89,12 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-// Fetch Event: Serve from cache first, fall back to network
+// Fetch Event: Serve from cache first, fall back to network, ignore query strings
 self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request)
+        caches.match(event.request, { ignoreSearch: true })
             .then(response => {
-                // Return the cached file if found
+                // Return the cached file if found (ignoring Cloudflare ? variables)
                 if (response) {
                     return response;
                 }
