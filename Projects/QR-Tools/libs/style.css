@@ -68,6 +68,36 @@ svg {
 }
 
 /* ==========================================================================
+   Form Controls (Bulletproof Dark Theme Override)
+   ========================================================================== */
+.app-container input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):not([type="color"]),
+.app-container textarea,
+.app-container select {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 1px solid #334155 !important;
+    box-sizing: border-box;
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.app-container input:focus,
+.app-container textarea:focus,
+.app-container select:focus {
+    border-color: #38bdf8 !important;
+}
+
+/* Ensure placeholder text isn't too dark to read */
+.app-container input::placeholder,
+.app-container textarea::placeholder {
+    color: #94a3b8 !important;
+}
+/* ==========================================================================
    Scanner Elements
    ========================================================================== */
 .scan-controls { 
