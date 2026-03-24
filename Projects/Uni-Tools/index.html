@@ -6,7 +6,6 @@
     <title>Unicode Tools</title>
     <link rel="icon" type="image/png" href="../../Assets/logo.png">
     <link rel="stylesheet" href="../../Assets/master.css">
-    <link rel="stylesheet" href="libs/style.css">
     <script src="libs/mammoth.browser.min.js"></script>
 </head>
 <body>
@@ -73,11 +72,20 @@
             </div>
         </div>
     </div>
+    <script>
+        function copyWithDoubleTick(button, textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = `<span style="color: var(--color-success); display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11L12 16L22 6M2 11L7 16L17 6"/></svg> Copied</span>`;
+                setTimeout(() => { button.innerHTML = originalHTML; }, 2000);
+            });
+        }
 
-    <div id="toast" class="hidden" style="position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1000; font-weight: bold;">
-        Copied to clipboard!
-    </div>
-
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const unicodeText = document.getElementById('output-text').value;
+            if(unicodeText) copyWithDoubleTick(this, unicodeText);
+        });
+    </script>
     <script src="libs/script.js"></script>
 </body>
 </html>
