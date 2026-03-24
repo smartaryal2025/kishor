@@ -15,7 +15,7 @@
     <meta property="og:image" content="https://kishoraryal.com.np/Assets/logo.png">
     <meta property="og:url" content="https://kishoraryal.com.np/">
     <meta property="og:type" content="website">
-    
+
     <link rel="icon" type="image/png" href="Assets/logo.png">
     <link rel="stylesheet" href="Assets/master.css">
     <link rel="manifest" href="/manifest.json">
@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('mobileOverlay');
 
@@ -64,7 +64,9 @@
         }
 
         function loadTool(path, element) {
+            // Reverted back to simple path so it works perfectly on local computer files
             document.getElementById('toolFrame').src = path;
+            
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
 
@@ -79,19 +81,6 @@
                 overlay.classList.remove('active');
             }
         });
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered successfully with scope: ', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed: ', error);
-                    });
-            });
-        }
     </script>
 </body>
 </html>
