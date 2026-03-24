@@ -1,18 +1,21 @@
 {
-  "name": "Utility Studio",
-  "short_name": "UtilStudio",
-  "description": "A powerful suite of offline-capable developer and utility tools.",
-  "start_url": "/",
+  "name": "Utility Studio Pro",
+  "short_name": "UtilityStudio",
+  "description": "Free, secure, and offline-capable suite of powerful web tools.",
+  "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#111827",
+  "background_color": "#0f172a",
   "theme_color": "#38bdf8",
-  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/Assets/logo.png",
-      "sizes": "192x192 512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
