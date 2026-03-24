@@ -15,7 +15,7 @@
     <meta property="og:image" content="https://kishoraryal.com.np/Assets/logo.png">
     <meta property="og:url" content="https://kishoraryal.com.np/Projects/Image-Tools/">
     <meta property="og:type" content="website">
-    
+
     <link rel="icon" type="image/png" href="../../Assets/logo.png">
     <link rel="stylesheet" href="libs/cropper.min.css">
     <link rel="stylesheet" href="../../Assets/master.css">
@@ -28,7 +28,9 @@
         <div class="tools-grid">
             <section>
                 <div class="section-header"><h2>Import Files</h2></div>
-                <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp, image/gif, image/svg+xml" multiple>
+                
+                <button class="btn-secondary" onclick="document.getElementById('file-input').click()" style="width: auto !important; min-width: 200px; padding: 10px 30px !important; display: inline-flex !important; margin: 0 0 15px 0 !important;">📁 Choose Files</button>
+                <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp, image/gif, image/svg+xml" multiple style="display: none;">
                 
                 <div style="font-size: 13px; margin-bottom: 10px; color: #94a3b8; font-weight: bold;">Gallery (Click to Select)</div>
                 <div class="thumb-grid" id="gallery"></div>
