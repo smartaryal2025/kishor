@@ -88,18 +88,36 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-// 3. The Safe Fetch Strategy (Stops the Mobile Loop!)
+// 3. The Intelligent Split-Fetch Strategy (The Permanent Mobile Fix)
 self.addEventListener('fetch', event => {
-    // Only intercept basic GET requests to avoid breaking iframe loading logic
+    // Only intercept basic GET requests
     if (event.request.method !== 'GET') return;
 
+    const url = new URL(event.request.url);
+
+    // STRATEGY A: Network-First for HTML & Iframe Navigations
+    // Always get the freshest HTML to prevent redirect loops. Fallback to cache if offline.
+    if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                // If offline, map trailing slashes to index.html so the cache can find them
+                let cacheRequest = event.request;
+                if (url.pathname.endsWith('/')) {
+                    cacheRequest = new Request(url.href + 'index.html');
+                }
+                return caches.match(cacheRequest, { ignoreSearch: true });
+            })
+        );
+        return; // Stop here for HTML
+    }
+
+    // STRATEGY B: Cache-First for Heavy Assets (JS, CSS, WASM, Images)
+    // Load tools instantly from the hard drive. Fallback to network if missing.
     event.respondWith(
-        // ignoreSearch: true forces the Service Worker to ignore Cloudflare's tracking tags
         caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
             if (cachedResponse) {
-                return cachedResponse; // Serve offline file safely
+                return cachedResponse; // Serve offline asset instantly
             }
-            // If not in cache, fetch from the live internet
             return fetch(event.request);
         })
     );
