@@ -9,71 +9,81 @@
     <link rel="stylesheet" href="../../Assets/master.css">
     <script src="libs/ffmpeg.js"></script>
     <script src="libs/index.js"></script> 
-    
-    <link rel="stylesheet" href="libs/style.css">
+
 </head>
 <body>
 
-    <h1 class="app-header">Media Studio</h1>
+    <div class="app-container">
+        <h1 class="app-header">Media Studio</h1>
 
-    <div class="dashboard">
-        <div class="card sidebar">
-            <h2 style="margin-top:0; margin-bottom: 1.5rem; font-size: 18px; color: #e2e8f0; border-bottom: 1px solid #334155; padding-bottom: 10px;">Processing Queue</h2>
+        <div class="tools-grid">
             
-            <div class="drop-zone" id="dropZone">
-                <p>Drag media here<br>or <span>click to browse</span></p>
-                <input type="file" id="fileInput" multiple accept="video/*,audio/*,.aac" style="display: none;">
-            </div>
-            <div id="fileQueue" class="file-queue"></div>
-
-            <div class="form-group">
-                <label>Target Format</label>
-                <select id="outputFormat">
-                    <optgroup label="Video Formats">
-                        <option value="mp4">MP4</option>
-                        <option value="mkv">MKV</option>
-                        <option value="avi">AVI</option>
-                        <option value="mov">MOV</option>
-                        <option value="wmv">WMV</option>
-                        <option value="flv">FLV</option>
-                        <option value="webm">WebM</option>
-                        <option value="gif">GIF Animation</option>
-                    </optgroup>
-                    <optgroup label="Audio Formats">
-                        <option value="mp3">MP3</option>
-                        <option value="aac">AAC</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-light); font-weight: normal;">
-                    <input type="checkbox" id="compressCheck"> Heavy Compression (Video)
-                </label>
-            </div>
-
-            <div class="form-group">
-                <label>Crop Settings (Leave blank to skip)</label>
-                <div class="crop-grid">
-                    <input type="number" id="cropW" placeholder="Width (px)">
-                    <input type="number" id="cropH" placeholder="Height (px)">
+            <section>
+                <div class="section-header"><h2>Processing Queue</h2></div>
+                
+                <div class="drop-zone" id="dropZone">
+                    <p>Drag media here<br>or <span style="color: var(--accent-primary); font-weight: bold;">click to browse</span></p>
+                    <input type="file" id="fileInput" multiple accept="video/*,audio/*,.aac" style="display: none;">
                 </div>
-            </div>
+                <div id="fileQueue" class="file-queue"></div>
 
-            <button id="processBtn">Execute Engine</button>
+                <div class="control-panel" style="flex-direction: column; align-items: stretch; margin-top: 20px;">
+                    
+                    <div class="control-group" style="flex-direction: column; align-items: flex-start; width: 100%;">
+                        <label class="control-label">Target Format</label>
+                        <select id="outputFormat">
+                            <optgroup label="Video Formats">
+                                <option value="mp4">MP4</option>
+                                <option value="mkv">MKV</option>
+                                <option value="avi">AVI</option>
+                                <option value="mov">MOV</option>
+                                <option value="wmv">WMV</option>
+                                <option value="flv">FLV</option>
+                                <option value="webm">WebM</option>
+                                <option value="gif">GIF Animation</option>
+                            </optgroup>
+                            <optgroup label="Audio Formats">
+                                <option value="mp3">MP3</option>
+                                <option value="aac">AAC</option>
+                            </optgroup>
+                        </select>
+                    </div>
 
-            <div class="local-history">
-                <h3>Recent Exports</h3>
-                <div id="historyContainer">
-                    <div style="color: var(--text-muted); font-size: 0.8rem; text-align: center;">Outputs will appear here.</div>
+                    <div class="control-group" style="width: 100%; margin-top: 5px;">
+                        <label style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); cursor: pointer; font-size: 14px;">
+                            <input type="checkbox" id="compressCheck" style="width: 16px; height: 16px;"> Heavy Compression (Video)
+                        </label>
+                    </div>
+
+                    <div class="control-group" style="flex-direction: column; align-items: flex-start; width: 100%; margin-top: 5px;">
+                        <label class="control-label">Crop Settings (Optional)</label>
+                        <div style="display: flex; gap: 10px; width: 100%;">
+                            <input type="number" id="cropW" placeholder="Width (px)">
+                            <input type="number" id="cropH" placeholder="Height (px)">
+                        </div>
+                    </div>
+
                 </div>
-            </div>
-        </div>
 
-        <div class="card">
-            <h2 style="margin-top:0; margin-bottom: 1.5rem; font-size: 18px; color: #e2e8f0; border-bottom: 1px solid #334155; padding-bottom: 10px;">System Terminal</h2>
-            <div class="terminal" id="terminal">
-                <p class="log-info">System initialized. Awaiting files.</p>
+                <button id="processBtn" class="btn-primary" style="width: 100%; padding: 12px; margin-top: 15px; font-size: 15px;">🚀 Execute Engine</button>
+            </section>
+
+            <div class="right-column">
+                
+                <section>
+                    <div class="section-header"><h2>System Terminal</h2></div>
+                    <div class="terminal" id="terminal">
+                        <p class="log-info">> System initialized. Awaiting files.</p>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header"><h2>Recent Exports</h2></div>
+                    <div id="historyContainer">
+                        <div style="color: var(--text-secondary); font-size: 14px; text-align: center; padding: 10px;">Outputs will appear here.</div>
+                    </div>
+                </section>
+
             </div>
         </div>
     </div>
@@ -91,54 +101,39 @@
             terminal.appendChild(p); terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // Prevent accidental drops
         window.addEventListener('dragover', function(e) { e.preventDefault(); }, false);
         window.addEventListener('drop', function(e) { e.preventDefault(); }, false);
 
-        // Drop Zone Logic
         dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { 
-            e.preventDefault(); dropZone.classList.add('dragover'); 
-        });
-        dropZone.addEventListener('dragleave', () => { 
-            dropZone.classList.remove('dragover'); 
-        });
-        dropZone.addEventListener('drop', (e) => { 
-            e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); 
-        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = "var(--accent-primary)"; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = "var(--border-color)"; });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.style.borderColor = "var(--border-color)"; handleFiles(e.dataTransfer.files); });
         fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
         function handleFiles(files) {
             selectedFiles = Array.from(files);
             fileQueue.innerHTML = '';
             selectedFiles.forEach(f => {
-                fileQueue.innerHTML += `<div class="file-item"><span>${f.name}</span><span style="color:var(--text-muted)">${(f.size/1048576).toFixed(1)}MB</span></div>`;
+                fileQueue.innerHTML += `<div class="file-item"><span>${f.name}</span><span style="color:var(--text-secondary)">${(f.size/1048576).toFixed(1)}MB</span></div>`;
             });
             log(`Queued ${selectedFiles.length} file(s) for processing.`);
         }
 
-        // Local History Function 
         function addLocalHistory(filename, url) {
             const container = document.getElementById('historyContainer');
-            if(container.innerHTML.includes('Outputs will appear here')) {
-                container.innerHTML = '';
-            }
+            if(container.innerHTML.includes('Outputs will appear here')) { container.innerHTML = ''; }
             const item = document.createElement('div');
             item.className = 'history-item';
             item.innerHTML = `
-                <span title="${filename}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">
-                    ${filename}
-                </span>
-                <a href="${url}" download="${filename}">Download</a>
+                <span title="${filename}" class="history-data">${filename}</span>
+                <a href="${url}" download="${filename}" class="btn-secondary" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px;">Download</a>
             `;
             container.prepend(item);
         }
 
-        // Engine Execution
         processBtn.addEventListener('click', async () => {
             if (typeof crossOriginIsolated === 'undefined' || !crossOriginIsolated) {
-                log('FATAL: Browser headers missing. Ensure Cloudflare _headers file is deployed.', 'log-error');
-                return;
+                log('FATAL: Browser headers missing. Ensure Cloudflare _headers file is deployed.', 'log-error'); return;
             }
             if (!selectedFiles.length) return log('Error: Queue empty.', 'log-error');
 
@@ -149,39 +144,26 @@
                 const { toBlobURL, fetchFile } = window.FFmpegUtil;
                 const ffmpeg = new FFmpeg();
 
-                ffmpeg.on('progress', ({ progress }) => { 
-                    log(`Processing... ${(progress * 100).toFixed(1)}%`); 
-                });
-                
+                ffmpeg.on('progress', ({ progress }) => { log(`Processing... ${(progress * 100).toFixed(1)}%`); });
                 log('Fetching engine into memory...', 'log-info');
                 
-                // Define both paths
                 const localBase = 'libs';
                 const cloudBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd';
 
                 try {
-                    // Attempt 1: Try loading everything 100% locally first
-                    log('Attempting to load local offline engine...', 'log-info');
-        
                     await ffmpeg.load({
                         coreURL: await toBlobURL(`${localBase}/ffmpeg-core.js`, 'text/javascript'),
                         wasmURL: await toBlobURL(`${localBase}/ffmpeg-core.wasm`, 'application/wasm'),
                         classWorkerURL: await toBlobURL(`${localBase}/814.ffmpeg.js`, 'text/javascript')
                     });
-        
                     log('Local offline engine loaded successfully!', 'log-success');
-
                 } catch (error) {
-                    // Attempt 2: If the local .wasm is missing (404), catch the error and fallback to Cloud
-                    console.warn("Local FFmpeg engine missing or failed to load. Falling back to Cloud CDN.", error);
-                    log('Local file missing. Falling back to Cloud CDN...', 'log-info'); // Assuming log-info outputs yellow/orange in your terminal
-        
+                    log('Local file missing. Falling back to Cloud CDN...', 'log-warning'); 
                     await ffmpeg.load({
                         coreURL: await toBlobURL(`${cloudBase}/ffmpeg-core.js`, 'text/javascript'),
                         wasmURL: await toBlobURL(`${cloudBase}/ffmpeg-core.wasm`, 'application/wasm'),
                         classWorkerURL: await toBlobURL(`${cloudBase}/814.ffmpeg.js`, 'text/javascript')
                     });
-        
                     log('Cloud engine loaded successfully!', 'log-success');
                 }
 
@@ -201,19 +183,11 @@
                     await ffmpeg.writeFile(inName, await fetchFile(file));
 
                     let args = ['-i', inName];
-                    
                     if (cropW) args.push('-vf', `crop=${cropW}:${cropH || cropW}`);
-                    
-                    if (format === 'mp3') {
-                        args.push('-vn', '-c:a', 'libmp3lame', '-q:a', '2');
-                    } else if (format === 'aac') {
-                        args.push('-vn', '-c:a', 'aac');
-                    } else if (format === 'gif') {
-                        args.push('-vf', 'fps=10,scale=320:-1:flags=lanczos');
-                    } else if (compress && ['mp4', 'mkv', 'mov', 'avi'].includes(format)) {
-                        args.push('-vcodec', 'libx264', '-crf', '28', '-preset', 'fast');
-                    }
-
+                    if (format === 'mp3') { args.push('-vn', '-c:a', 'libmp3lame', '-q:a', '2'); } 
+                    else if (format === 'aac') { args.push('-vn', '-c:a', 'aac'); } 
+                    else if (format === 'gif') { args.push('-vf', 'fps=10,scale=320:-1:flags=lanczos'); } 
+                    else if (compress && ['mp4', 'mkv', 'mov', 'avi'].includes(format)) { args.push('-vcodec', 'libx264', '-crf', '28', '-preset', 'fast'); }
                     args.push(outName);
                     
                     log(`Executing: ffmpeg ${args.join(' ')}`);
@@ -228,7 +202,6 @@
                     const blob = new Blob([data.buffer], { type: mimeType });
                     const url = URL.createObjectURL(blob);
                     
-                    // Add to Local History panel
                     addLocalHistory(finalFilename, url);
                     log(`Completed: ${file.name}`, 'log-success');
                 }
