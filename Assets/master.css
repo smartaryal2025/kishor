@@ -3,22 +3,30 @@
    ========================================================================== */
 
 :root {
-    --bg-start: #1f2937;
-    --bg-end: #111827;
-    --surface-dark: #0f172a;
-    --surface-light: #1e293b;
-    --border-color: #334155;
-    --accent-primary: #38bdf8;
-    --accent-hover: #0ea5e9;
-    --text-primary: #e2e8f0;
-    --text-secondary: #94a3b8;
-    --color-success: #10b981;
-    --color-success-hover: #059669;
-    --color-error: #ef4444;
-    --color-error-hover: #dc2626;
+    --bg-start: #020617;
+    --bg-end: #000000;
+    --surface-dark: #010a1a;
+    --surface-light: #0a1f44;
+    
+    /* Darkened to fix text visibility on the Merge/Compress buttons */
+    --border-color: #334155; 
+    
+    /* Restored to your bright neon cyan for the file browser buttons */
+    --accent-primary: #00d9ff; 
+    --accent-hover: #0099ff;
+    
+    --text-primary: #e6faff;
+    --text-secondary: #475569c;
+    --color-success: #00ffcc;
+    --color-success-hover: #00e6b8;
+    --color-error: #ff0033;
+    --color-error-hover: #ff1a4d;
     --radius-md: 5px;
     --radius-lg: 8px;
-    --shadow-soft: 0 4px 6px rgba(0,0,0,0.2);
+    --shadow-soft:
+        0 0 5px rgba(0, 217, 255, 0.7),
+        0 0 10px rgba(0, 217, 255, 0.5),
+        0 0 20px rgba(0, 217, 255, 0.3);
     --transition-smooth: all 0.3s ease;
 }
 
