@@ -114,9 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let calBsYear = todayBs.year, calBsMonth = todayBs.month;
     let calAdYear = todayAd.year, calAdMonth = todayAd.month;
 
-    // 1. Live Date
+    // 1. Live Date (Updated Format with Bug Fix)
     document.getElementById('current-date-text').textContent = 
-        `Today: ${engMonths[todayAd.month]} ${todayAd.day}, ${todayAd.year} | वि.सं. ${toDevanagari(todayBs.year)} ${nepMonthsDevanagari[todayBs.month]} ${toDevanagari(todayBs.day)}`;
+        `आज: मिति ${toDevanagari(todayBs.year)} साल ${nepMonthsDevanagari[todayBs.month]} ${toDevanagari(todayBs.day)} गते, ${nepWeekdays[todayBs.weekdayIndex]} | ${engMonths[todayAd.month]} ${todayAd.day}, ${todayAd.year}, ${engWeekdays[now.getDay()]}`;
 
     // 2. Populate Dropdowns (Forms + Calendars)
     const populateAllDropdowns = () => {
@@ -253,10 +253,59 @@ document.addEventListener('DOMContentLoaded', () => {
         const cont = document.getElementById('bs-cal-days');
         cont.innerHTML = '';
 
-        for (let i = 0; i < firstDayAd.weekdayIndex; i++) cont.innerHTML += `<div class="cal-day empty"></div>`;
+        // Detect if we are on the new Pro Calendar (cal.html)
+        const isPro = document.querySelector('.pro-date-grid') !== null;
+
+        // 1. Render Previous Month (Muted or Empty)
+        let prevY = calBsYear, prevM = calBsMonth - 1;
+        if (prevM < 0) { prevM = 11; prevY--; }
+        
+        if (isPro && nepaliMonthDays[prevY]) {
+            const prevTotalDays = nepaliMonthDays[prevY][prevM];
+            const startPrevDay = prevTotalDays - firstDayAd.weekdayIndex + 1;
+            for (let i = 0; i < firstDayAd.weekdayIndex; i++) {
+                let pDay = startPrevDay + i;
+                const pAdDate = convertBStoAD(prevY, prevM, pDay);
+                let engLabel = pAdDate ? pAdDate.day : '';
+                if (pAdDate && pAdDate.day === 1) engLabel = engMonths[pAdDate.month].substring(0,3) + " " + pAdDate.day;
+                
+                cont.innerHTML += `<div class="cal-day muted">${toDevanagari(pDay)}<span class="eng-date-small">${engLabel}</span></div>`;
+            }
+        } else {
+            for (let i = 0; i < firstDayAd.weekdayIndex; i++) cont.innerHTML += `<div class="cal-day empty"></div>`;
+        }
+
+        // 2. Render Current Month
         for (let i = 1; i <= totalDays; i++) {
             const isToday = (todayBs.year === calBsYear && todayBs.month === calBsMonth && todayBs.day === i);
-            cont.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''}">${toDevanagari(i)}</div>`;
+            
+            if (isPro) {
+                const adDate = convertBStoAD(calBsYear, calBsMonth, i);
+                let engLabel = adDate ? adDate.day : '';
+                if (adDate && adDate.day === 1) engLabel = engMonths[adDate.month].substring(0,3) + " " + adDate.day;
+
+                cont.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''}">${toDevanagari(i)}<span class="eng-date-small">${engLabel}</span></div>`;
+            } else {
+                cont.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''}">${toDevanagari(i)}</div>`;
+            }
+        }
+
+        // 3. Render Next Month to fill out the grid nicely (Pro Only)
+        if (isPro) {
+            const totalCells = firstDayAd.weekdayIndex + totalDays;
+            const remainingCells = (7 - (totalCells % 7)) % 7;
+            
+            if (remainingCells > 0) {
+                let nextY = calBsYear, nextM = calBsMonth + 1;
+                if (nextM > 11) { nextM = 0; nextY++; }
+                for (let i = 1; i <= remainingCells; i++) {
+                    const nAdDate = convertBStoAD(nextY, nextM, i);
+                    let engLabel = nAdDate ? nAdDate.day : '';
+                    if (nAdDate && nAdDate.day === 1) engLabel = engMonths[nAdDate.month].substring(0,3) + " " + nAdDate.day;
+                    
+                    cont.innerHTML += `<div class="cal-day muted">${toDevanagari(i)}<span class="eng-date-small">${engLabel}</span></div>`;
+                }
+            }
         }
     };
 
