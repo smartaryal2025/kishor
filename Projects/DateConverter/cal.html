@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Date Converter | Utility Studio</title>
+    <meta name="description" content="Advanced unified Nepali and English Date Converter and Calendar.">
+    <meta name="author" content="Kishor Aryal">
+    
+    <link rel="icon" type="image/png" href="../../Assets/logo.png">
+    <link rel="stylesheet" href="../../Assets/master.css">
+    
+    <style>
+        /* Bypass the max-width to let the Pro layout expand */
+        .wide-date-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 30px; }
+        .wide-date-wrapper .live-date { font-size: 18px !important; padding: 12px 28px !important; border-radius: 30px !important; }
+        .wide-date-wrapper .indicator { width: 12px !important; height: 12px !important; }
+
+        /* Custom Grid Layout for Pro Converter */
+        .pro-date-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            align-items: start;
+            width: 100%;
+        }
+        @media (min-width: 1000px) {
+            /* FIX: Changed 400px to 350px to perfectly match other tools */
+            .pro-date-grid { grid-template-columns: 350px 1fr; }
+        }
+
+        /* Force script.js output to be Massive Pro Cells */
+        #bs-cal-days .cal-day {
+            position: relative;
+            min-height: 85px !important; 
+            font-size: 32px !important;  
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface-light);
+            border-radius: var(--radius-md);
+            border: 1px solid transparent;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+            padding: 0 !important;
+        }
+        #bs-cal-days .cal-day:hover { border-color: var(--accent-primary); background: var(--surface-dark); }
+        #bs-cal-days .cal-day.today { background: rgba(16, 185, 129, 0.15) !important; border-color: var(--color-success) !important; color: var(--color-success) !important; }
+        
+        /* The Small English Date in the corner */
+        .eng-date-small {
+            position: absolute;
+            bottom: 6px;
+            right: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: normal;
+            font-family: monospace;
+        }
+        /* Fade out previous/next month days so they aren't distracting */
+        #bs-cal-days .cal-day.muted {
+            opacity: 0.15 !important; /* Drops visibility down to 15% */
+            background: transparent !important;
+            pointer-events: none !important; /* Makes them unclickable */
+            border: none !important;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.location.href='index.html'" class="btn-secondary" style="position: absolute; top: 15px; right: 15px; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin: 0; display: flex; align-items: center; gap: 8px;">
+        🔄 Compact View
+    </button>
+    <a href="../../layout2.html" title="Back to Dashboard" style="position: fixed; top: 15px; left: 15px; z-index: 1000; background: var(--surface-light); border: 1px solid var(--border-color); box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-primary); text-decoration: none; transition: all 0.2s ease;" onmouseover="this.style.background='var(--surface-dark)'; this.style.color='var(--accent-primary)';" onmouseout="this.style.background='var(--surface-light)'; this.style.color='var(--text-primary)';">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+    </a>
+    <div class="app-container">
+        <h1 class="app-header">नेपाली पात्रो</h1>
+        <div class="wide-date-wrapper">
+            <div id="live-date" class="live-date">
+                <span class="indicator"></span>
+                <span id="current-date-text">Loading today's date...</span>
+            </div>
+        </div>
+
+        <div class="pro-date-grid">
+            
+            <div class="left-column">
+                <main class="card-container" style="margin-bottom: 0;">
+                    <div class="tabs">
+                        <button class="tab-btn main-tab active" data-tab="ad-to-bs">Convert A.D. to B.S.</button>
+                        <button class="tab-btn main-tab" data-tab="bs-to-ad">Convert B.S. to A.D.</button>
+                    </div>
+
+                    <section id="ad-to-bs" class="tab-content active" style="padding: 0; box-shadow: none; border: none; background: transparent;">
+                        <form id="form-ad-to-bs">
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label for="ad-year">Year (A.D.)</label>
+                                    <select id="ad-year" required style="text-align: center;"></select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="ad-month">Month</label>
+                                    <select id="ad-month" required style="text-align: center;"></select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="ad-day">Day</label>
+                                    <select id="ad-day" required style="text-align: center;"></select>
+                                </div>
+                            </div>
+                            <div class="button-group" style="margin-top: 15px;">
+                                <button type="submit" class="btn-primary">Convert to B.S.</button>
+                                <button type="button" class="btn-secondary reset-btn">Reset</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section id="bs-to-ad" class="tab-content" style="padding: 0; box-shadow: none; border: none; background: transparent;">
+                        <form id="form-bs-to-ad">
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label for="bs-year">साल (वि.सं.)</label>
+                                    <select id="bs-year" required style="text-align: center;"></select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="bs-month">महिना</label>
+                                    <select id="bs-month" required style="text-align: center;"></select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="bs-day">गते</label>
+                                    <select id="bs-day" required style="text-align: center;"></select>
+                                </div>
+                            </div>
+                            <div class="button-group" style="margin-top: 15px;">
+                                <button type="submit" class="btn-primary">Convert to A.D.</button>
+                                <button type="button" class="btn-secondary reset-btn">Reset</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <div id="output-section" class="output-card hidden" style="margin-top: 20px;">
+                        <div style="font-size: 13px; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 12px;">Converted Date</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+                            <p id="result-text" class="result-text" style="margin: 0; word-break: break-word;"></p>
+                            <button id="copy-btn" class="btn-secondary" style="margin: 0; height: 40px; min-width: 90px;">Copy</button>
+                        </div>
+                        <div id="error-message" class="error-message hidden"></div>
+                    </div>
+                </main>
+            </div>
+
+            <div class="right-column">
+                <main class="card-container" style="height: 100%; display: flex; flex-direction: column;">
+                    
+                    <div class="calendar-header" style="margin-bottom: 25px;">
+                        <button id="bs-cal-prev" class="btn-icon cal-nav-btn" style="width: 45px; height: 45px; font-size: 18px;">&lt;</button>
+                        <div class="cal-controls" style="gap: 15px;">
+                            <select id="cal-bs-month-select" class="cal-header-select" style="min-width: 140px; text-align: center; font-size: 16px;"></select>
+                            <select id="cal-bs-year-select" class="cal-header-select" style="min-width: 110px; text-align: center; font-size: 16px;"></select>
+                        </div>
+                        <button id="bs-cal-next" class="btn-icon cal-nav-btn" style="width: 45px; height: 45px; font-size: 18px;">&gt;</button>
+                    </div>
+
+                    <div class="calendar-grid" id="bs-cal-grid" style="gap: 8px; flex-grow: 1;">
+                        <div class="weekday" style="font-size: 14px;">आइत<br><span style="font-size: 10px; font-weight: normal;">SUN</span></div>
+                        <div class="weekday" style="font-size: 14px;">सोम<br><span style="font-size: 10px; font-weight: normal;">MON</span></div>
+                        <div class="weekday" style="font-size: 14px;">मंगल<br><span style="font-size: 10px; font-weight: normal;">TUE</span></div>
+                        <div class="weekday" style="font-size: 14px;">बुध<br><span style="font-size: 10px; font-weight: normal;">WED</span></div>
+                        <div class="weekday" style="font-size: 14px;">बिही<br><span style="font-size: 10px; font-weight: normal;">THU</span></div>
+                        <div class="weekday" style="font-size: 14px;">शुक्र<br><span style="font-size: 10px; font-weight: normal;">FRI</span></div>
+                        <div class="weekday" style="font-size: 14px;">शनि<br><span style="font-size: 10px; font-weight: normal;">SAT</span></div>
+                        
+                        <div id="bs-cal-days" class="cal-days-wrapper"></div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: none;">
+        <select id="cal-ad-month-select"></select>
+        <select id="cal-ad-year-select"></select>
+        <button id="ad-cal-prev"></button>
+        <button id="ad-cal-next"></button>
+        <div id="ad-cal-grid"></div>
+        <div id="ad-cal-days"></div>
+    </div>
+
+    <script src="libs/script.js"></script>
+    <script>
+        function copyWithDoubleTick(button, textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = `<span style="color: var(--color-success); display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: bold; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11L12 16L22 6M2 11L7 16L17 6"/></svg> Copied</span>`;
+                setTimeout(() => { button.innerHTML = originalHTML; }, 2000);
+            });
+        }
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const dateText = document.getElementById('result-text').innerText;
+            if(dateText) copyWithDoubleTick(this, dateText);
+        });
+    </script>
+</body>
+</html>

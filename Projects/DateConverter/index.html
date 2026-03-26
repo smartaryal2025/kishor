@@ -15,14 +15,19 @@
     <meta property="og:image" content="https://kishoraryal.com.np/Assets/logo.png">
     <meta property="og:url" content="https://kishoraryal.com.np/Projects/DateConverter/">
     <meta property="og:type" content="website">
-    
+
     <link rel="icon" type="image/png" href="../../Assets/logo.png">
     <link rel="stylesheet" href="../../Assets/master.css">
 </head>
 <body>
+    <button onclick="window.location.href='cal.html'" class="btn-secondary" style="position: absolute; top: 15px; right: 15px; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin: 0; display: flex; align-items: center; gap: 8px;">
+        🔄 Wide View
+    </button>
+    <a href="../../layout2.html" title="Back to Dashboard" style="position: fixed; top: 15px; left: 15px; z-index: 1000; background: var(--surface-light); border: 1px solid var(--border-color); box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-primary); text-decoration: none; transition: all 0.2s ease;" onmouseover="this.style.background='var(--surface-dark)'; this.style.color='var(--accent-primary)';" onmouseout="this.style.background='var(--surface-light)'; this.style.color='var(--text-primary)';">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+    </a>
     <div class="app-container">
         <h1 class="app-header">Nepali Date Converter</h1>
-        
         <div class="live-date-container">
             <div id="live-date" class="live-date">
                 <span class="indicator"></span>
@@ -104,8 +109,8 @@
                 <div class="calendar-header">
                     <button id="bs-cal-prev" class="btn-icon cal-nav-btn">&lt;</button>
                     <div class="cal-controls">
-                        <select id="cal-bs-month-select" class="cal-header-select"></select>
-                        <select id="cal-bs-year-select" class="cal-header-select"></select>
+                        <select id="cal-bs-month-select" class="cal-header-select" style="min-width: 130px; text-align: center;"></select>
+                        <select id="cal-bs-year-select" class="cal-header-select" style="min-width: 100px; text-align: center;"></select>
                     </div>
                     <button id="bs-cal-next" class="btn-icon cal-nav-btn">&gt;</button>
                 </div>
@@ -120,8 +125,8 @@
                 <div class="calendar-header">
                     <button id="ad-cal-prev" class="btn-icon cal-nav-btn">&lt;</button>
                     <div class="cal-controls">
-                        <select id="cal-ad-month-select" class="cal-header-select"></select>
-                        <select id="cal-ad-year-select" class="cal-header-select"></select>
+                        <select id="cal-ad-month-select" class="cal-header-select" style="min-width: 130px; text-align: center;"></select>
+                        <select id="cal-ad-year-select" class="cal-header-select" style="min-width: 100px; text-align: center;"></select>
                     </div>
                     <button id="ad-cal-next" class="btn-icon cal-nav-btn">&gt;</button>
                 </div>
