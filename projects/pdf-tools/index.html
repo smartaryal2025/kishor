@@ -97,6 +97,7 @@
                         <ul style="font-size: 13.5px; color: var(--text-secondary); padding-left: 20px; margin-bottom: 15px; line-height: 1.6;">
                             <li><strong>Split All:</strong> Automatically extracts every single page of your PDF into its own separate 1-page PDF file.</li>
                             <li><strong>Manual Split:</strong> Create custom output groups. Drag and drop pages from the Source grid below into these groups to extract specific pages into grouped PDF files.</li>
+                            <li><strong>Custom Renaming:</strong> In Manual mode, you can type directly into the text box of each bucket (replacing the default <em>split_1.pdf</em>) to give your exported files custom names before saving.</li>
                             <li><strong>Smart Export:</strong> If multiple files are generated, they will be automatically bundled into a single ZIP file for easy downloading.</li>
                         </ul>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -112,10 +113,13 @@
                     </div>
                     
                     <div id="manual-split-panel" style="margin-top: 15px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                             <h3 style="font-size: 14px; margin: 0;">Split Groups (Buckets)</h3>
                             <button id="add-bucket-btn" class="btn-secondary">+ Add Output Bucket</button>
                         </div>
+                        <p style="font-size: 12.5px; color: var(--text-secondary); margin-top: 0; margin-bottom: 12px; font-style: italic;">
+                            Drag pages here to group them. Click the default name (e.g., split_1.pdf) to rename your exported file.
+                        </p>
                         <div id="split-buckets-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;"></div>
                     </div>
                     
