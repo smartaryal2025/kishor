@@ -2,11 +2,16 @@ const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-function downloadFile(data, filename) {
-    const blob = new Blob([data], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob); const link = document.createElement('a');
-    link.href = url; link.download = filename || 'document.pdf';
-    document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+function downloadFile(data, filename, mimeType = 'application/pdf') {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
+    const url = URL.createObjectURL(blob); 
+    const link = document.createElement('a');
+    link.href = url; 
+    link.download = filename || 'document.pdf';
+    document.body.appendChild(link); 
+    link.click(); 
+    document.body.removeChild(link); 
+    URL.revokeObjectURL(url);
 }
 
 function printPdfBlob(data) {
@@ -106,15 +111,43 @@ async function loadThumbs(file, grid, fileId = 0) {
     return await PDFDocument.load(buf.slice(0));
 }
 
+// ==========================================
+// UPDATED SPLIT TOOL LOGIC
+// ==========================================
 const splitSrc = document.getElementById('split-source-grid');
 const splitBuckets = document.getElementById('split-buckets-container');
-let splitDoc = null; let bCount = 0;
+const btnSplitAll = document.getElementById('mode-split-all');
+const btnSplitManual = document.getElementById('mode-split-manual');
+const manualPanel = document.getElementById('manual-split-panel');
+const splitBtn = document.getElementById('split-btn');
+
+let splitDoc = null; 
+let bCount = 0;
+let splitMode = 'manual';
 
 new Sortable(splitSrc, {group:'s', animation:150});
+
+// Mode Switching Logic
+btnSplitAll.addEventListener('click', () => {
+    splitMode = 'all';
+    btnSplitAll.style.cssText = "background: var(--accent-primary); color: black; border-color: var(--accent-primary); font-weight: bold;";
+    btnSplitManual.style.cssText = "";
+    manualPanel.style.display = 'none';
+    splitBtn.innerText = 'Extract All Pages';
+});
+
+btnSplitManual.addEventListener('click', () => {
+    splitMode = 'manual';
+    btnSplitManual.style.cssText = "background: var(--accent-primary); color: black; border-color: var(--accent-primary); font-weight: bold;";
+    btnSplitAll.style.cssText = "";
+    manualPanel.style.display = 'block';
+    splitBtn.innerText = 'Save All Outputs';
+});
+
 document.getElementById('add-bucket-btn').onclick = () => {
     bCount++;
     const b = document.createElement('div'); b.className = 'split-bucket';
-    b.innerHTML = `<div class="bucket-header"><input placeholder="split_${bCount}.pdf" value=""><button class="btn-secondary" onclick="this.parentElement.parentElement.remove()">X</button></div><div class="thumb-grid" style="min-height:80px;"></div>`;
+    b.innerHTML = `<div class="bucket-header"><input placeholder="split_${bCount}.pdf" value="" style="flex-grow:1;"><button class="btn-secondary" style="padding: 4px 8px;" onclick="this.parentElement.parentElement.remove()">✕</button></div><div class="thumb-grid" style="min-height:100px;"></div>`;
     splitBuckets.appendChild(b);
     new Sortable(b.querySelector('.thumb-grid'), {group:'s', animation:150});
 };
@@ -126,20 +159,74 @@ document.getElementById('split-upload').addEventListener('change', async e => {
     splitDoc = await loadThumbs(e.target.files[0], splitSrc);
 });
 
+// SMART ZIP IMPLEMENTATION
 document.getElementById('split-btn').addEventListener('click', async () => {
-    const status = document.getElementById('split-status'); status.innerText = "Saving Outputs..."; status.style.color = "#38bdf8";
+    const status = document.getElementById('split-status'); 
+    status.innerText = "Processing files..."; status.style.color = "#38bdf8";
+    splitBtn.disabled = true;
+    
     try {
-        for (let b of splitBuckets.querySelectorAll('.split-bucket')) {
-            const items = Array.from(b.querySelectorAll('.thumbnail-item')); if(!items.length) continue;
-            const pdf = await PDFDocument.create();
-            (await pdf.copyPages(splitDoc, items.map(i=>parseInt(i.dataset.pid)))).forEach(p=>pdf.addPage(p));
-            let fName = b.querySelector('input').value || b.querySelector('input').placeholder;
-            if(!fName.endsWith('.pdf')) fName += '.pdf';
-            downloadFile(await pdf.save(), fName);
+        if (splitMode === 'all') {
+            const totalPages = splitDoc.getPageCount();
+            if (totalPages === 1) {
+                // Only 1 page? Just download the PDF directly.
+                const pdf = await PDFDocument.create();
+                const [copiedPage] = await pdf.copyPages(splitDoc, [0]);
+                pdf.addPage(copiedPage);
+                downloadFile(await pdf.save(), `page_1.pdf`, "application/pdf");
+                status.innerText = "Extracted 1 page successfully!"; 
+            } else {
+                // Multiple pages? Zip them!
+                const zip = new JSZip(); 
+                for (let i = 0; i < totalPages; i++) {
+                    const pdf = await PDFDocument.create();
+                    const [copiedPage] = await pdf.copyPages(splitDoc, [i]);
+                    pdf.addPage(copiedPage);
+                    zip.file(`page_${i + 1}.pdf`, await pdf.save()); 
+                }
+                status.innerText = "Zipping files...";
+                const zipBlob = await zip.generateAsync({type: "blob"});
+                downloadFile(zipBlob, "Split_All_Pages.zip", "application/zip");
+                status.innerText = `Extracted ${totalPages} pages into a ZIP successfully!`; 
+            }
+        } else {
+            // Manual Mode
+            let validOutputs = [];
+            for (let b of splitBuckets.querySelectorAll('.split-bucket')) {
+                const items = Array.from(b.querySelectorAll('.thumbnail-item')); if(!items.length) continue;
+                const pdf = await PDFDocument.create();
+                (await pdf.copyPages(splitDoc, items.map(i=>parseInt(i.dataset.pid)))).forEach(p=>pdf.addPage(p));
+                let fName = b.querySelector('input').value || b.querySelector('input').placeholder;
+                if(!fName.endsWith('.pdf')) fName += '.pdf';
+                validOutputs.push({ pdf, fName });
+            }
+            
+            if(validOutputs.length === 0) {
+                 status.innerText = "No pages found in any output group."; status.style.color = "#ef4444";
+            } else if (validOutputs.length === 1) {
+                 // Only 1 valid bucket? Just download the PDF directly.
+                 downloadFile(await validOutputs[0].pdf.save(), validOutputs[0].fName, "application/pdf");
+                 status.innerText = "Saved 1 output group successfully!";
+            } else {
+                 // Multiple buckets? Zip them!
+                 const zip = new JSZip();
+                 for (let out of validOutputs) {
+                     zip.file(out.fName, await out.pdf.save());
+                 }
+                 status.innerText = "Zipping files...";
+                 const zipBlob = await zip.generateAsync({type: "blob"});
+                 downloadFile(zipBlob, "Manual_Split_Groups.zip", "application/zip");
+                 status.innerText = `Saved ${validOutputs.length} output groups into a ZIP successfully!`;
+            }
         }
-        status.innerText = "Outputs Saved!"; status.style.color = "#10b981";
-    } catch(e) { status.innerText = "Error Splitting."; status.style.color = "#ef4444"; }
+        if(status.innerText.includes("successfully")) status.style.color = "#10b981";
+    } catch(e) { 
+        status.innerText = "Error Splitting."; status.style.color = "#ef4444"; console.error(e);
+    }
+    splitBtn.disabled = false;
 });
+// ==========================================
+
 
 const orgGrid = document.getElementById('org-grid');
 let orgDocs = {}; let fid = 0; new Sortable(orgGrid, {animation:150});
@@ -309,13 +396,11 @@ const sizeInput = document.getElementById('elem-size');
 const boldBtn = document.getElementById('text-bold');
 const italicBtn = document.getElementById('text-italic');
 const rotateInput = document.getElementById('elem-rotate');
-let clipboardEdit = null; // Stores our copied object
+let clipboardEdit = null;
 
 function setEditorTool(toolCategory, specificTool) {
     document.querySelectorAll('.tool-btn, .tool-select').forEach(el => el.classList.remove('active'));
     
-    // Only deselect if we are switching tools AND clicking the canvas background
-    // Otherwise, keep the selection active so we can change its color!
     if (!selectedEdit || (selectedEdit && activeTool !== toolCategory)) {
         selectObject(null);
     }
@@ -323,7 +408,6 @@ function setEditorTool(toolCategory, specificTool) {
     activeTool = toolCategory; document.body.dataset.activeTool = activeTool; 
     const tool = specificTool || toolCategory;
     
-    // Check if we need to show the format bar based on the tool OR the currently selected object
     const showFormatBar = (tool === 'text' || tool === 'rect' || tool === 'ellipse' || tool === 'line' || tool === 'highlight' || tool === 'formtext' || tool === 'checkbox' || tool === 'tick' || tool === 'cross') 
                           || (selectedEdit && selectedEdit.type !== 'image' && selectedEdit.type !== 'crop');
     
@@ -332,7 +416,6 @@ function setEditorTool(toolCategory, specificTool) {
     const cropBar = document.getElementById('crop-format-bar');
     if(cropBar) cropBar.style.display = (tool === 'crop' || (selectedEdit && selectedEdit.type === 'crop')) ? 'flex' : 'none';
 
-    // Only set default colors if we are starting a NEW drawing (nothing selected)
     if (!selectedEdit) {
         if (tool === 'highlight') { fColorInput.value = '#facc15'; noFillInput.checked = false; } 
         else if (tool === 'rect' || tool === 'ellipse' || tool === 'line') { bColorInput.value = '#000000'; noFillInput.checked = true; } 
@@ -354,7 +437,7 @@ document.getElementById('edit-image-upload').addEventListener('change', e => {
     const reader = new FileReader();
     reader.onload = (event) => { customImgData = event.target.result; setEditorTool('image', 'image'); };
     reader.readAsDataURL(e.target.files[0]);
-    e.target.value = ''; // Duplicate image bypass
+    e.target.value = ''; 
 });
 
 document.getElementById('crop-all-pages-check').addEventListener('change', (e) => {
@@ -417,7 +500,6 @@ rotateInput.addEventListener('input', (e) => {
     } 
 });
 
-// COMPLETELY NEW SCREEN-COORDINATE ENGINE
 function syncVisuals(edit) {
     edit.el.style.left = `${edit.vpX * 2.0 * cssScale}px`;
     let adjustedScreenY = edit.vpY;
@@ -431,7 +513,7 @@ function syncVisuals(edit) {
         edit.el.style.color = edit.textColor || '#000000'; 
         edit.el.style.fontSize = `${edit.fontSize * 2.0 * cssScale}px`;
         edit.el.style.fontWeight = edit.isBold ? 'bold' : 'normal';
-        edit.el.style.fontStyle = edit.isItalic ? 'italic' : 'normal'; // NEW
+        edit.el.style.fontStyle = edit.isItalic ? 'italic' : 'normal'; 
     } else if (edit.type === 'formtext') {
         edit.el.style.color = edit.textColor || '#000000'; 
         edit.el.style.backgroundColor = edit.noFill ? 'transparent' : (edit.fillColor || '#ffffff');
@@ -448,7 +530,6 @@ function syncVisuals(edit) {
             edit.el.style.backgroundColor = edit.noFill ? 'transparent' : (edit.fillColor || '#ffffff');
         }
     }
-    // Apply Free Rotation
     edit.el.style.transform = `rotate(${edit.rotation || 0}deg)`;
 }
 
@@ -465,22 +546,20 @@ function selectObject(edit) {
         if(edit.type === 'text') {
             boldBtn.style.background = edit.isBold ? '#0ea5e9' : '#1e293b';
             boldBtn.style.color = edit.isBold ? 'black' : '#38bdf8';
-            italicBtn.style.background = edit.isItalic ? '#0ea5e9' : '#1e293b'; // NEW
-            italicBtn.style.color = edit.isItalic ? 'black' : '#38bdf8';        // NEW
+            italicBtn.style.background = edit.isItalic ? '#0ea5e9' : '#1e293b'; 
+            italicBtn.style.color = edit.isItalic ? 'black' : '#38bdf8';        
         }
-        // Sync rotation UI
         rotateInput.value = edit.rotation || 0;
         if(edit.type === 'crop') {
             document.getElementById('crop-all-pages-check').checked = !!edit.allPages;
-            document.getElementById('crop-format-bar').style.display = 'flex'; // Ensure crop bar shows
+            document.getElementById('crop-format-bar').style.display = 'flex'; 
             document.getElementById('text-format-bar').style.display = 'none';
         } else if (edit.type !== 'image') {
-            document.getElementById('text-format-bar').style.display = 'flex'; // Keep format bar open!
+            document.getElementById('text-format-bar').style.display = 'flex'; 
             const cropBar = document.getElementById('crop-format-bar');
             if(cropBar) cropBar.style.display = 'none';
         }
     } else {
-        // If we deselected an object, hide the format bar IF we are in the 'select' tool
         if (activeTool === 'select') {
             document.getElementById('text-format-bar').style.display = 'none';
             const cropBar = document.getElementById('crop-format-bar');
@@ -601,7 +680,7 @@ overlayLayer.addEventListener('pointerdown', e => {
             document.addEventListener('pointermove', onMove); document.addEventListener('pointerup', onUp);
         });
     });
-// Add visual rotation handle (joystick)
+
     if(type === 'text' || type === 'rect' || type === 'image') {
         const rotHandle = document.createElement('div');
         rotHandle.className = 'rotate-handle';
@@ -612,16 +691,13 @@ overlayLayer.addEventListener('pointerdown', e => {
             ev.preventDefault(); ev.stopPropagation();
             let isRotating = true;
             
-            // Get center point of the object for math
             const rect = el.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
 
             const onMove = (mv) => {
                 if(!isRotating) return;
-                // Calculate angle from center to mouse pointer
                 let angle = Math.atan2(mv.clientY - centerY, mv.clientX - centerX) * (180 / Math.PI);
-                // Offset by 90deg because the handle is at the top (12 o'clock)
                 newEdit.rotation = Math.round(angle + 90);
                 syncVisuals(newEdit);
                 if(selectedEdit === newEdit) rotateInput.value = newEdit.rotation;
@@ -657,7 +733,6 @@ overlayLayer.addEventListener('pointerdown', e => {
     selectObject(newEdit);
     if(type === 'text') { setTimeout(() => el.focus(), 50); }
     
-    // === NEW: DOUBLE CLICK TO EDIT TEXT ===
     el.addEventListener('dblclick', (ev) => {
         if(newEdit.type === 'text' || newEdit.type === 'formtext') {
             ev.stopPropagation();
@@ -669,31 +744,24 @@ overlayLayer.addEventListener('pointerdown', e => {
         }
     });
     
-    // Silently switch back to the 'select' tool so you can immediately drag/resize,
-    // WITHOUT firing the button click event that wipes the color bar.
     activeTool = 'select';
     document.body.dataset.activeTool = 'select';
     document.querySelectorAll('.tool-btn, .tool-select').forEach(b => b.classList.remove('active'));
     document.querySelector('.tool-btn[data-tool="select"]').classList.add('active');
     
-    // Ensure format bar stays visible for the newly selected object
     document.getElementById('text-format-bar').style.display = 'flex';
-    
 }); 
 
 document.addEventListener('keydown', (e) => {
     const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === "true";
     
-    // DELETE
     if((e.key === 'Delete' || e.key === 'Backspace') && selectedEdit && !isTyping) {
         selectedEdit.el.remove(); liveEdits = liveEdits.filter(item => item !== selectedEdit); selectObject(null);
     }
 
-    // COPY (Ctrl+C)
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedEdit && !isTyping) {
         clipboardEdit = { ...selectedEdit }; 
         if (selectedEdit.type === 'text' || selectedEdit.type === 'formtext') {
-            // FIXED: Clone the element and violently remove the delete button BEFORE reading the text!
             let clone = selectedEdit.el.cloneNode(true);
             let del = clone.querySelector('.del-overlay-btn'); if(del) del.remove();
             clipboardEdit.savedText = clone.innerText;
@@ -701,7 +769,6 @@ document.addEventListener('keydown', (e) => {
         clipboardEdit.el = null; 
     }
 
-    // CUT (Ctrl+X)
     if ((e.ctrlKey || e.metaKey) && e.key === 'x' && selectedEdit && !isTyping) {
         clipboardEdit = { ...selectedEdit }; 
         if (selectedEdit.type === 'text' || selectedEdit.type === 'formtext') {
@@ -713,7 +780,6 @@ document.addEventListener('keydown', (e) => {
         selectedEdit.el.remove(); liveEdits = liveEdits.filter(item => item !== selectedEdit); selectObject(null);
     }
 
-    // PASTE (Ctrl+V)
     if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboardEdit && !isTyping) {
         if (clipboardEdit.type === 'crop') return;
 
@@ -753,7 +819,6 @@ document.addEventListener('keydown', (e) => {
         const delBtn = document.createElement('button'); delBtn.className = 'del-overlay-btn'; delBtn.innerHTML = '&times;'; el.appendChild(delBtn);
         delBtn.onclick = () => { el.remove(); liveEdits = liveEdits.filter(item => item !== newEdit); selectObject(null); };
 
-        // === FIXED: WIRE UP RESIZE CORNERS TO PASTED OBJECT ===
         const handleClasses = ['se'];
         handleClasses.forEach(pos => {
             const resizer = document.createElement('div');
@@ -790,7 +855,6 @@ document.addEventListener('keydown', (e) => {
             });
         });
 
-        // === FIXED: WIRE UP YELLOW ROTATION JOYSTICK TO PASTED OBJECT ===
         if(newEdit.type === 'text' || newEdit.type === 'rect' || newEdit.type === 'image') {
             const rotHandle = document.createElement('div');
             rotHandle.className = 'rotate-handle';
@@ -816,9 +880,7 @@ document.addEventListener('keydown', (e) => {
             });
         }
 
-        // DRAG LOGIC
         el.addEventListener('pointerdown', (ev) => {
-            // Make sure we aren't accidentally dragging when trying to click the new handles
             if(activeTool !== 'select' || ev.target.className.includes('resize-handle') || ev.target.className === 'rotate-handle' || ev.target === delBtn) return;
             ev.preventDefault(); ev.stopPropagation();
             selectObject(newEdit);
@@ -835,7 +897,6 @@ document.addEventListener('keydown', (e) => {
             document.addEventListener('pointermove', onMove); document.addEventListener('pointerup', onUp);
         });
 
-        // === NEW: DOUBLE CLICK TO EDIT PASTED TEXT ===
         el.addEventListener('dblclick', (ev) => {
             if(newEdit.type === 'text' || newEdit.type === 'formtext') {
                 ev.stopPropagation();
@@ -872,7 +933,6 @@ async function generateEditedPdfBytes() {
             const tRgb = hexToRgb(edit.textColor || '#000000'); const bRgb = hexToRgb(edit.borderColor || '#000000'); let fRgb;
             if (!edit.noFill && edit.fillColor) fRgb = hexToRgb(edit.fillColor);
 
-            // FINAL PDF-LIB BOTTOM-LEFT CONVERSION HAPPENS ONLY HERE
             const [pdfL, pdfT] = currentViewport.convertToPdfPoint(edit.vpX, edit.vpY);
             const [pdfR, pdfB] = currentViewport.convertToPdfPoint(edit.vpX + (edit.vpW||0), edit.vpY + (edit.vpH||0));
             const w = Math.abs(pdfR - pdfL); const h = Math.abs(pdfT - pdfB);
@@ -884,8 +944,6 @@ async function generateEditedPdfBytes() {
                 let del = clone.querySelector('.del-overlay-btn'); if(del) del.remove();
                 let text = clone.innerText || " "; text = text.replace(/[^\x00-\x7F]/g, ""); 
                 if (text.trim().length > 0) { 
-                    
-                    // Logic to load standard baked fonts instead of default
                     let fontToUse = StandardFonts.Helvetica;
                     if (edit.isBold && edit.isItalic) fontToUse = StandardFonts.HelveticaBoldOblique;
                     else if (edit.isBold) fontToUse = StandardFonts.HelveticaBold;
@@ -897,7 +955,7 @@ async function generateEditedPdfBytes() {
                         size: edit.fontSize || 16, 
                         color: tRgb, 
                         rotate: degrees(-(edit.rotation || 0)),
-                        font: pdfFont // Bake it in!
+                        font: pdfFont 
                     }); 
                 }
             }
